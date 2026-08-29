@@ -359,13 +359,20 @@ def render_apple_lineup() -> str:
     return "\n".join(lines)
 
 
-def placement_lines() -> list[str]:
-    """The two questions, answered from current data. Plain text so the terminal answerer
-    (scripts/answer.py) and the README block stay identical."""
-    p = repo_data.solve_placement()
+def compute_question_lines(p: "repo_data.Placement") -> list[str]:
     op = repo_data.operating_inputs()
-    ref = repo_data.reference_workload()
+    return [
+        "THE COMPUTE QUESTION  (deterministic work: builds, simulation, batch jobs)",
+        f"  own it           {p.compute_value.name} at {usd(p.compute_value.psi, 2)} per "
+        f"SPECrate-point-year all-in over {op.years:.0f} years",
+        f"  renting instead  {p.rent_ratio_lo:.1f}x to {p.rent_ratio_hi:.1f}x the cost of owning, same unit",
+        f"  watts binding?   {p.compute_efficiency.name} is the efficiency pick at "
+        f"{p.compute_efficiency.points_per_watt:.2f} pts per wall watt",
+    ]
 
+
+def tokens_question_lines(p: "repo_data.Placement") -> list[str]:
+    ref = repo_data.reference_workload()
     default_line = (
         f"{p.token_default.id}: AA {p.token_default.aa_score}, "
         f"{usd(p.token_default_cost_per_task, 3)}/task, {usd(p.token_default.lifetime_cost, 0)} "
@@ -382,23 +389,17 @@ def placement_lines() -> list[str]:
     )
     if p.frontier_multiple_per_task is not None:
         frontier_line += f" ({p.frontier_multiple_per_task:.1f}x default per task)"
-
-    lines = [
-        "THE COMPUTE QUESTION  (deterministic work: builds, simulation, batch jobs)",
-        f"  own it           {p.compute_value.name} at {usd(p.compute_value.psi, 2)} per "
-        f"SPECrate-point-year all-in over {op.years:.0f} years",
-        f"  renting instead  {p.rent_ratio_lo:.1f}x to {p.rent_ratio_hi:.1f}x the cost of owning, same unit",
-        f"  watts binding?   {p.compute_efficiency.name} is the efficiency pick at "
-        f"{p.compute_efficiency.points_per_watt:.2f} pts per wall watt",
-        "",
+    return [
         "THE TOKENS QUESTION  (thinking)",
         f"  default          {default_line}",
         f"  frontier calls   {frontier_line}",
         f"  local inference  no: the best passing local config runs {p.local.ratio:.1f}x cloud "
         f"cost at AA {p.local.local_score}",
         "  the local box    hosts the agent: orchestration, sandboxes, a small resident triage model",
-        "",
     ]
+
+
+def answer_caveat(p: "repo_data.Placement") -> str:
     caveat = (
         "Caveats, solved with the answer: "
         + ", ".join(p.frontier_uncosted)
@@ -412,8 +413,20 @@ def placement_lines() -> list[str]:
             "frontier tier is for rare calls, not the loop."
         )
     caveat += " Every price is VOLATILE; run scripts/check_staleness.py before trusting."
-    lines.append(caveat)
-    return lines
+    return caveat
+
+
+def placement_lines() -> list[str]:
+    """The two questions, answered from current data. Plain text so the terminal answerer
+    (scripts/answer.py) and the README block stay identical."""
+    p = repo_data.solve_placement()
+    return [
+        *compute_question_lines(p),
+        "",
+        *tokens_question_lines(p),
+        "",
+        answer_caveat(p),
+    ]
 
 
 def render_the_answer() -> str:

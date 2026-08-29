@@ -7,6 +7,10 @@ asked to move them into the data layer.
 
 ## The loop
 
+Steps 2 through 5 are one command: `python scripts/sotw.py update` (it also rewrites
+`reports/latest-tokens.md` and `reports/latest-compute.md`, and ends with the list of
+figures still needing a manual re-pull). The steps individually:
+
 1. Edit or add figures in `data/*.yaml`. Every figure carries `value`, `date`, `source`, and
    `confidence`. When you update a value, move the old one into a `history` list rather than
    deleting it.
