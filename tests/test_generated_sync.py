@@ -1,0 +1,50 @@
+"""The committed docs must match what the data layer solves to right now.
+
+This is the no-statics rule made executable: if someone edits a YAML value and forgets to
+re-solve, or hand-edits a generated table, this fails. Fix with:
+
+    python scripts/build_tables.py
+"""
+
+from __future__ import annotations
+
+import re
+
+import build_tables
+
+
+def test_docs_match_data_layer():
+    solved = build_tables.solve_all()
+    stale: list[str] = []
+    for doc in build_tables.DOCS:
+        if not doc.exists():
+            continue
+        text = doc.read_text(encoding="utf-8")
+        for m in build_tables.MARKER.finditer(text):
+            key = m.group("key")
+            body = m.group("body").rstrip("\n")
+            if key == "last_solved":
+                # Regenerated on every build; only require the shape, not today's date.
+                if not body.startswith("**Last solved:**"):
+                    stale.append(f"{doc.name}:{key}")
+                continue
+            if body != solved[key]:
+                stale.append(f"{doc.name}:{key}")
+    assert not stale, (
+        "generated blocks out of sync with data/ (run python scripts/build_tables.py): "
+        + ", ".join(stale)
+    )
+
+
+def test_every_marker_has_a_renderer_and_no_orphans():
+    seen: set[str] = set()
+    for doc in build_tables.DOCS:
+        if not doc.exists():
+            continue
+        text = doc.read_text(encoding="utf-8")
+        for m in re.finditer(r"<!-- gen:([a-z0-9_]+) -->", text):
+            key = m.group(1)
+            assert key in build_tables.RENDERERS, f"{doc.name}: marker gen:{key} has no renderer"
+            seen.add(key)
+    unused = set(build_tables.RENDERERS) - seen
+    assert not unused, f"renderers with no marker in any doc: {sorted(unused)}"

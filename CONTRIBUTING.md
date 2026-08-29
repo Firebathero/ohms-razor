@@ -13,7 +13,9 @@ asked to move them into the data layer.
 2. `python scripts/check_staleness.py` to see what is past its freshness window.
 3. `python scripts/build_tables.py` to re-solve every generated block in the README and the
    analysis docs. `--check` verifies the committed docs match the data without writing.
-4. `python scripts/plot_frontier.py` to regenerate the Pareto plot.
+4. `python scripts/plot_frontier.py` and `python scripts/plot_watts.py` to regenerate the
+   plots. `python scripts/answer.py` prints the currently solved answer to both placement
+   questions; sanity-check it after any data change.
 5. `pytest` runs three kinds of tests:
    - math checks: the model formulas against dated input snapshots
    - workbook parity: the pipeline must reproduce `spreadsheets/compute-node-model.xlsx`

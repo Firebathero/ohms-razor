@@ -1,0 +1,74 @@
+# API list pricing, USD per million tokens. Peak/off-peak schedules and promos carried
+# explicitly. When a price moves, push the old value into history rather than deleting it.
+# Freshness window: 30 days (see CONTRIBUTING.md).
+models:
+  - id: glm-5.3-flash
+    vendor: Zhipu
+    tier: volume
+    input_per_mtok: 0.15
+    cached_input_per_mtok: 0.03
+    output_per_mtok: 0.50
+    date: 2026-08-29
+    confidence: VOLATILE
+    source: sources#glm-53-flash-pricing
+    promo:
+      description: 50 percent off all three rates
+      multiplier: 0.5
+      expires: 2026-09-09
+      expires_note: ends 24:00 UTC+8
+      confidence: EXPIRES
+    peak_pricing: null
+
+  - id: deepseek-v4-flash
+    vendor: DeepSeek
+    tier: volume
+    # Off-peak rates. Peak multiplies every component by the multiplier below.
+    input_per_mtok: 0.22
+    cached_input_per_mtok: 0.007
+    output_per_mtok: 0.66
+    date: 2026-08-29
+    confidence: VOLATILE
+    source: sources#deepseek-v4-flash-pricing
+    peak_pricing:
+      multiplier: 2.0
+      windows_utc: ["01:00-04:00", "06:00-10:00"]
+      confidence: VOLATILE
+      note: >-
+        7 of 24 hours are peak. A 24/7 loop with no scheduling has f_peak = 7/24. The
+        handoff's worked example rounded that to 0.29.
+    history:
+      - field: output_per_mtok
+        value: 0.28
+        superseded: 2026-08-16
+        confidence: CONFIRMED
+        note: >-
+          Output moved from 0.28 flat to 0.66 off-peak / 1.32 peak in one change on
+          2026-08-16, a 371 percent move at peak. Treat this vendor's pricing as unstable.
+
+  - id: kimi-k3
+    vendor: Moonshot
+    tier: frontier
+    input_per_mtok: 3.00
+    cached_input_per_mtok: 0.30
+    output_per_mtok: 15.00
+    total_params_b: 2800
+    date: 2026-08-29
+    confidence: VOLATILE
+    source: sources#kimi-k3-pricing
+    notes: >-
+      Deprecation risk is live for this vendor; see the watch list (Kimi K2.5 and
+      moonshot-v1 retirement).
+
+  - id: gpt-oss-120b-cloud
+    vendor: multiple
+    tier: open-weights-hosted
+    input_per_mtok: 0.03
+    cached_input_per_mtok: null
+    output_per_mtok: 0.17
+    date: 2026-08-29
+    confidence: VOLATILE
+    source: sources#gpt-oss-120b-cloud-pricing
+    notes: >-
+      Cheapest tier observed (CoreWeave and DeepInfra). Spread across the 18 providers
+      tracked runs up to 8.9x, so provider selection matters more than model selection
+      inside this tier. Used as the cloud comparator for self-hosting the same weights.

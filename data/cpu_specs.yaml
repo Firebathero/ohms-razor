@@ -1,0 +1,204 @@
+# CPU candidates for the deterministic-compute node (Model 5, Psi). SPECrate submissions
+# never expire; street prices carry a 30-day window. The 1P scaling factor sigma and the
+# cTDP derates phi are the two most important non-measured numbers in the repo and are
+# tagged accordingly everywhere they appear.
+calibration:
+  sigma_1p_scaling:
+    value: 0.5256
+    confidence: DERIVED
+    date: 2026-08-29
+    source: sources#specrate
+    note: >-
+      1P/2P ratio calibrated on the EPYC 9745, the only candidate with both published:
+      1P 1,230 / 2P 2,340 = 0.5256. Applied identically to every candidate, so it cancels
+      out of the ranking even if it is off in absolute terms.
+
+candidates:
+  - id: epyc-9965
+    name: AMD EPYC 9965
+    cores: 192
+    architecture: Zen 5c
+    l3_mb: 384
+    tdp_default_w: 500
+    ctdp_floor_w: 450
+    mem_bandwidth_gb_s: 614
+    specrate_2p:
+      submissions:
+        - {value: 3230, system: ASUS RS720A-E13}
+        - {value: 3150, system: Kaytus KR1280V3}
+        - {value: 3130, system: H3C R4950 G7}
+        - {value: 3100, system: Gigabyte R183-Z93}
+      value_used: 3140
+      confidence: MEASURED
+      source: sources#specrate
+    run_ctdp_w: 450
+    phi:
+      value: 0.99
+      confidence: ESTIMATE
+      note: >-
+        Nobody published 450W vs 500W on the 9965. Extrapolated from the 9745 measurement
+        (0.98 at a 20 percent TDP cut) for the smaller 10 percent cut. This is a judgment
+        call, not a measurement, and the 9965-vs-9845 perf/watt comparison sits inside its
+        error bar.
+    price_street_usd: 7000
+    price_confidence: VOLATILE
+    price_date: 2026-08-29
+    price_note: US eBay new listings about $6,995; TechRadar tracked sub-$6,000 new in Jun-2026
+    price_history:
+      - {field: msrp_1ku_usd, value: 14813, note: launch}
+      - {field: msrp_1ku_usd, value: 11988, note: current 1kU after AMD cut}
+
+  - id: epyc-9845
+    name: AMD EPYC 9845
+    cores: 160
+    architecture: Zen 5c
+    l3_mb: 320
+    tdp_default_w: 390
+    ctdp_floor_w: 320
+    mem_bandwidth_gb_s: 614
+    specrate_2p:
+      submissions:
+        - {value: 2620, system: Dell PowerEdge M7725, date: 2025-03}
+      value_used: 2620
+      confidence: MEASURED
+      note: single published result; the thinnest evidence of the four (handoff weakness 4)
+      source: sources#specrate
+    run_ctdp_w: 320
+    phi:
+      value: 0.98
+      confidence: DERIVED
+      note: measured on the 9745 at the same 320W floor; assumed to transfer within Zen 5c
+    price_street_usd: 9684
+    price_confidence: VOLATILE
+    price_date: 2026-08-29
+    price_note: IT Creations, new unlocked tray. Never saw the discounting the 9965 did.
+    price_history:
+      - {field: msrp_1ku_usd, value: 11411, note: current 1kU}
+
+  - id: epyc-9755
+    name: AMD EPYC 9755
+    cores: 128
+    architecture: Zen 5
+    l3_mb: 512
+    tdp_default_w: 500
+    ctdp_floor_w: 500
+    mem_bandwidth_gb_s: 614
+    specrate_2p:
+      submissions: []
+      value_used: 2589
+      confidence: DERIVED
+      note: >-
+        No published SPECrate found. Back-solved from Phoronix: the 9745 lands at about 90
+        percent of the 9755 across a 555-benchmark geomean. The softest work-rate number in
+        the set.
+      source: sources#specrate
+    run_ctdp_w: 500
+    phi:
+      value: 1.0
+      confidence: DEFINITION
+      note: runs at stock; no derate applied
+    price_street_usd: 6500
+    price_confidence: VOLATILE
+    price_date: 2026-08-29
+    price_note: Phoronix noted about $7,200 at major retailers Mar-2026; an eBay dealer listed $6,169
+
+  - id: epyc-9745
+    name: AMD EPYC 9745
+    cores: 128
+    architecture: Zen 5c
+    l3_mb: 256
+    tdp_default_w: 400
+    ctdp_floor_w: 320
+    mem_bandwidth_gb_s: 614
+    specrate_2p:
+      submissions:
+        - {value: 2400, system: Dell R7725}
+        - {value: 2340, system: Dell R6725}
+        - {value: 2300, system: Lenovo SR665 V3}
+        - {value: 2290, system: Fujitsu RX2450 M2}
+      value_used: 2330
+      confidence: MEASURED
+      note: >-
+        The workbook states median 2,330 and uses it; the strict median of the four
+        submissions is 2,320. Kept at 2,330 for workbook parity; the 0.4 percent wobble
+        does not move any ranking. Flagged rather than silently corrected.
+      source: sources#specrate
+    specrate_1p:
+      submissions:
+        - {value: 1270, system: ASUS RS520QA}
+        - {value: 1230, system: xFusion 2158H V8}
+        - {value: 1170, system: Dell R6715}
+      confidence: MEASURED
+      note: used only to calibrate sigma, and to sanity-check the scaled work rates
+      source: sources#specrate
+    run_ctdp_w: 320
+    phi:
+      value: 0.98
+      confidence: MEASURED
+      note: Phoronix, 555-benchmark geomean, 320W vs 400W on the Gigabyte MZ33-AR1
+      source: sources#phi-derate
+    price_street_usd: 7200
+    price_confidence: VOLATILE
+    price_date: 2026-08-29
+    price_note: Phoronix Mar-2026; IT Creations $7,950-8,340
+    price_history:
+      - {field: msrp_1ku_usd, value: 12141, note: launch}
+      - {field: msrp_1ku_usd, value: 10588, note: current 1kU after AMD cut}
+
+# Reference part for the rental comparison: the CPU inside Hetzner's AX162.
+reference_cpus:
+  - id: epyc-9454p
+    name: AMD EPYC 9454P
+    cores: 48
+    architecture: Zen 4
+    specrate_1p:
+      submissions:
+        - {value: 523, system: Dell PowerEdge R6615, date: 2023-11}
+      value_used: 523
+      confidence: MEASURED
+      source: sources#specrate
+
+# Renting the same kind of compute, priced in the same unit (dollars per SPECrate-point-year).
+rental_offers:
+  - id: hetzner-ax162-1
+    name: Hetzner AX162-1
+    cpu: epyc-9454p
+    monthly_usd: 722.10
+    setup_usd: 359
+    date: 2026-06-15
+    confidence: CONFIRMED
+    source: sources#hetzner
+    note: excl. IPv4 and VAT. Launched at EUR 199/mo in Feb-2024; repriced 2026-06-15.
+  - id: hetzner-ax162-1-ltd
+    name: Hetzner AX162-1-LTD
+    cpu: epyc-9454p
+    monthly_usd: 372.10
+    setup_usd: 359
+    date: 2026-06-15
+    confidence: CONFIRMED
+    source: sources#hetzner
+    note: limited-supply tier; availability is not guaranteed and cannot anchor fleet planning
+
+# Hetzner cloud repricing of 2026-06-15, kept as raw old/new prices. Percentage moves are
+# computed at solve time, not stored.
+hetzner_cloud_repricing:
+  effective: 2026-06-15
+  confidence: CONFIRMED
+  source: sources#hetzner
+  instances:
+    - {id: CCX63, old_eur: 374.49, new_eur: 853.49}
+    - {id: CPX41, old_eur: 38.99, new_eur: 120.49}
+    - {id: CPX51, old_eur: 77.99, new_eur: 237.99}
+
+# Historical record: the handoff's finding F7 reported Psi figures computed before the
+# current RAM price was pulled. Kept for reconciliation, not used in any solve.
+handoff_reported:
+  psi_per_point_10yr_epyc_9965:
+    value: 15.85
+    tco_10yr_usd: 25750
+    confidence: SUPERSEDED
+    date: 2026-08-29
+    note: >-
+      Back-solves to DDR5 near $16/GB against the $35.70/GB carried in the handoff's own
+      data table (dated 2026-08-14). The model reproduces these figures only at that
+      earlier RAM price; see analysis/05-hardware-selection.md for the reconciliation.

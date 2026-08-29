@@ -1,0 +1,137 @@
+# Shared operating assumptions and the build-of-materials for the compute node. Mirrors the
+# Inputs and Parts List tabs of spreadsheets/compute-node-model.xlsx; a parity test asserts
+# the two never drift apart. Blue-cell equivalents: edit here, everything downstream re-solves.
+operating:
+  hold_years:
+    value: 10
+    confidence: DEFINITION
+    note: >-
+      Turin shipped Oct-2024; ten years means running to 2036. Five years is the realistic
+      economic life (handoff weakness 7). Conclusions survive either; the absolute numbers
+      roughly double at five. The sensitivity table solves both.
+  utilization:
+    value: 1.0
+    confidence: DEFINITION
+    note: fraction of wall-clock actually loaded; 1.0 is the stated 24/7 plan
+  hours_per_year:
+    value: 8766
+    confidence: DEFINITION
+    note: 365.25 x 24
+  electricity_usd_per_kwh:
+    value: 0.20
+    confidence: ESTIMATE
+    date: 2026-08-29
+    source: sources#electricity
+    note: >-
+      BGE price-to-compare is 14.609c/kWh generation-only through 30-Sep-2026; Maryland
+      residential all-in averages 16-22c. 20c is fair-to-conservative.
+  electricity_escalation:
+    value: 0.0
+    confidence: DEFINITION
+    note: MD rates rose about 3.8 percent YoY; set 0.03 to solve the escalated case
+  discount_rate:
+    value: 0.0
+    confidence: DEFINITION
+    note: set 0.08 to price capex today against energy spread over a decade
+  platform_draw_w:
+    value: 100
+    confidence: ESTIMATE
+    note: >-
+      Board, 12 DIMMs, NVMe, fans, BMC. Twelve loaded DDR5 RDIMMs alone run 50-70W, so 100
+      is on the optimistic side.
+  psu_efficiency:
+    value: 0.92
+    confidence: ESTIMATE
+    note: 80+ Titanium is about 94 percent at half load; 0.92 is conservative
+  cooling_overhead:
+    value: 1.0
+    confidence: DEFINITION
+    note: >-
+      1.00 for unconditioned space. About 1.10 for a Maryland basement on AC in summer
+      (COP about 3), netted against the winter heating credit.
+  idle_draw_w:
+    value: 120
+    confidence: ESTIMATE
+    note: only matters when utilization is below 1
+  residual_value_usd:
+    value: 0
+    confidence: DEFINITION
+    note: conservative zero; used EPYC holds value, set it if you plan to resell
+
+memory_config:
+  dimm_slots_populated:
+    value: 12
+    confidence: DEFINITION
+    note: all 12 channels, always; bandwidth scales with channels
+  gb_per_dimm:
+    value: 32
+    confidence: DEFINITION
+    note: >-
+      32GB gives 2GB/core on the 9965 and is dual-rank. 16GB halves the cost but is
+      single-rank x8 and gives up achieved bandwidth. Every SPECrate result behind this
+      model used 2Rx4 modules.
+
+# The single most volatile figure in the repo. 14-day freshness window.
+memory_pricing:
+  ddr5_6400_rdimm_usd_per_gb:
+    value: 35.70
+    band: [29.56, 39.06]
+    date: 2026-08-14
+    confidence: VOLATILE
+    category: dram
+    source: sources#dram
+    note: >-
+      Live ECC RDIMM street pricing, median of observed band. Driven by HBM capacity
+      diversion; shortage forecast into mid-2027. Re-check the day you buy.
+  pre_shortage_reference_usd_per_gb:
+    value: 8.0
+    confidence: ESTIMATE
+    note: >-
+      Roughly where $/GB sat before the squeeze. Waiting for normalization is worth more
+      than any CPU decision in this repo; the memory-lever table quantifies that.
+
+# Non-CPU parts, identical across all four CPU candidates, so they cancel out of the
+# ranking. Memory is priced from memory_config x memory_pricing at solve time.
+server_bom:
+  - id: motherboard
+    spec: Gigabyte MZ33-AR1 (SP5, E-ATX, 24x DDR5 RDIMM, cTDP to 500W, 4x PCIe5 x16, 2x 10GbE, IPMI)
+    unit_usd: 900
+    confidence: CONFIRMED
+    source: sources#motherboard
+    note: >-
+      Supports every candidate including the 500W parts; the board Phoronix benched the
+      9745 on. Phoronix put it near $700; eBay/Newegg run $1,000-1,250.
+  - id: chassis
+    spec: 4U rackmount, SP5 clearance, front-to-back airflow
+    unit_usd: 350
+    confidence: ESTIMATE
+    note: Rosewill RSV-L4500 class
+  - id: psu
+    spec: 1000W 80+ Titanium, single rail
+    unit_usd: 300
+    confidence: ESTIMATE
+    note: at about 600W wall the unit sits near 60 percent load, the peak-efficiency band
+  - id: cpu_cooler
+    spec: SP5 4U active tower or 360mm AIO rated 500W+
+    unit_usd: 180
+    confidence: ESTIMATE
+    note: must be rated above the cTDP you actually run
+  - id: boot_scratch
+    spec: 2TB NVMe PCIe Gen4
+    unit_usd: 220
+    confidence: ESTIMATE
+    note: NAND is inflated alongside DRAM; add bulk storage separately if jobs need it
+  - id: fans
+    spec: 4U high-static-pressure set
+    unit_usd: 80
+    confidence: ESTIMATE
+  - id: misc
+    spec: rails, SATA/MCIO cables, thermal paste, IPMI cable
+    unit_usd: 70
+    confidence: ESTIMATE
+
+bom_exclusions:
+  - network switch, UPS, rack, PDU (assumed already present)
+  - bulk data storage beyond the 2TB scratch drive
+  - sales tax and shipping
+  - your time; a DIY SP5 build is a weekend if the BIOS cooperates and longer if it does not
