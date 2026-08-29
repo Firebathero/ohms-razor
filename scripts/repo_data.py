@@ -588,6 +588,75 @@ def solve_handoff_reconciliation() -> dict[str, float]:
     }
 
 
+# ---------------------------------------------------------------- the two questions
+
+@dataclass(frozen=True)
+class Placement:
+    """The repo's current answer to the two modern questions, solved from data/."""
+
+    compute_value: Evaluation            # what to buy for deterministic work
+    compute_efficiency: Evaluation       # what to buy when watts are the binding constraint
+    rent_ratio_lo: float
+    rent_ratio_hi: float
+    token_default: ApiCostRow            # cheapest capable listed path
+    token_default_cost_per_task: float | None
+    token_default_promo: ApiCostRow | None
+    token_frontier: FrontierPoint        # highest-score costed point, cheapest on ties
+    frontier_multiple_per_task: float | None
+    frontier_uncosted: list[str]         # scored at or above the pick, no cost per task yet
+    frontier_priced_workload: list[tuple[str, float, float]]  # (id, workload cost, x default)
+    local: LocalVsCloud
+
+
+CAPABLE_SCORE_FLOOR = 50  # DEFINITION: a volume-tier model must be near-frontier to count
+
+
+def solve_placement(today: date | None = None) -> Placement:
+    psi_sol = solve_psi()
+    _, rent_rows, _, _ = solve_rent()
+    ratios = sorted(r.times_owning for r in rent_rows)
+
+    api = solve_api_costs(today=today)
+    listed = [
+        r for r in api
+        if r.expires is None and r.aa_score is not None and r.aa_score >= CAPABLE_SCORE_FLOOR
+    ]
+    default = min(listed, key=lambda r: r.lifetime_cost)
+    promo = next((r for r in api if r.id == default.id and r.expires is not None), None)
+    costs = {e["model"]: e["cost_per_task_usd"] for e in aa_index()["entries"]}
+
+    points = solve_frontier()
+    frontier = max(points, key=lambda p: (p.score, -p.cost_per_task))
+    default_task = costs.get(default.id)
+    multiple = frontier.cost_per_task / default_task if default_task else None
+    uncosted = [
+        e["model"]
+        for e in aa_index()["entries"]
+        if e["cost_per_task_usd"] is None and e["score"] >= frontier.score
+    ]
+    priced_frontier = [
+        (m.id, row.lifetime_cost, row.lifetime_cost / default.lifetime_cost)
+        for m in priced_models()
+        if m.tier == "frontier"
+        for row in api
+        if row.id == m.id and row.expires is None
+    ]
+    return Placement(
+        compute_value=psi_sol.winner,
+        compute_efficiency=psi_sol.best_points_per_watt,
+        rent_ratio_lo=ratios[0],
+        rent_ratio_hi=ratios[-1],
+        token_default=default,
+        token_default_cost_per_task=default_task,
+        token_default_promo=promo,
+        token_frontier=frontier,
+        frontier_multiple_per_task=multiple,
+        frontier_uncosted=uncosted,
+        frontier_priced_workload=priced_frontier,
+        local=solve_local_vs_cloud(),
+    )
+
+
 def solve_hetzner_cloud_moves() -> list[tuple[str, float, float, float]]:
     """(instance, old EUR, new EUR, percent increase) computed from raw prices."""
     rep = load("cpu_specs")["hetzner_cloud_repricing"]

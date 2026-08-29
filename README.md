@@ -37,6 +37,30 @@ over 10 years at 80% cache hit:
 
 A box that cannot sustain that rate cannot produce the workload at any duty cycle.
 
+## The two questions, answered
+
+The modern placement decision is really two questions: what do I use for compute
+(deterministic work), and what do I use for tokens for a given task. This is the repo's
+current answer, solved from `data/` on every build (`python scripts/answer.py` prints the
+same thing in the terminal):
+
+<!-- gen:the_answer -->
+```text
+THE COMPUTE QUESTION  (deterministic work: builds, simulation, batch jobs)
+  own it           AMD EPYC 9965 at $2.04 per SPECrate-point-year all-in over 10 years
+  renting instead  4.2x to 8.1x the cost of owning, same unit
+  watts binding?   AMD EPYC 9845 is the efficiency pick at 2.96 pts per wall watt
+
+THE TOKENS QUESTION  (thinking)
+  default          glm-5.3-flash: AA 57, $0.045/task, $1,915 for the 10-yr reference workload at list ($958 on promo through 2026-09-09)
+  frontier calls   grok-4.6: AA 60, $0.62/task, the cheapest costed frontier point (13.8x default per task)
+  local inference  no: the best passing local config runs 3.3x cloud cost at AA 24
+  the local box    hosts the agent: orchestration, sandboxes, a small resident triage model
+
+Caveats, solved with the answer: kimi-k3, glm-5.3-max, claude-opus-5 sit at or above the frontier pick's score with no cost per task yet (TODO in data/benchmarks.yaml); the pick re-solves when they are costed. kimi-k3 is the one frontier model with API pricing here and prices the reference workload at $52,542 (27.4x default), which is why the frontier tier is for rare calls, not the loop. Every price is VOLATILE; run scripts/check_staleness.py before trusting.
+```
+<!-- /gen:the_answer -->
+
 ## Known weaknesses, first
 
 These are the strongest available rebuttals, stated before the findings they weaken:
@@ -71,7 +95,14 @@ These are the strongest available rebuttals, stated before the findings they wea
 | F7 | Owning beats renting for deterministic compute | AMD EPYC 9965 at $2.04/pt-yr; renting runs 4.2x to 8.1x owning | 2026-06-15 |
 <!-- /gen:findings_summary -->
 
+The tokens question, plotted (F2):
+
 ![Capability vs cost Pareto frontier](analysis/assets/pareto_frontier.png)
+
+The compute question, plotted (F7): efficiency and value are different answers, which is
+why perf/watt gets its own chart instead of a column.
+
+![Compute per watt vs Psi](analysis/assets/compute_per_watt.png)
 
 Each finding has a full write-up in `analysis/`, prose around solved tables: mechanism,
 numbers, and what would falsify it.
@@ -83,11 +114,13 @@ git clone https://github.com/Firebathero/ohms-razor
 cd ohms-razor
 pip install -r requirements.txt
 
+python scripts/answer.py              # the two questions, answered from current data
 pytest                                # formula checks, workbook parity, live conclusions
 python scripts/check_staleness.py     # what needs a re-pull before you trust it
 python scripts/build_tables.py        # re-solve every table in README + analysis from data/
 python scripts/build_tables.py --check  # verify the committed docs match the data layer
 python scripts/plot_frontier.py       # regenerate the Pareto plot
+python scripts/plot_watts.py          # regenerate the compute-per-watt plot
 ```
 
 The maintenance loop (monthly or on demand) is in `CONTRIBUTING.md`: re-pull stale
@@ -127,6 +160,9 @@ spreadsheets/  the original interactive Psi workbook (kept in parity by test)
   rather than rent for deterministic compute (9965 at 450W). Known day-one flags: DRAM
   pricing already past its 14-day window (dated 2026-08-14) and both Hetzner figures past
   30 days (dated 2026-06-15); re-pull before relying on those.
+- **2026-08-29** Split the placement decision into its two questions explicitly: added the
+  solved answer block (`scripts/answer.py`), and gave compute per watt its own plot and
+  analysis section instead of a table column.
 
 ## License
 

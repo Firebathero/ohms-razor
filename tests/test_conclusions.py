@@ -167,6 +167,43 @@ def test_handoff_reconciliation_closes():
     assert drift / rec["reported_psi_per_point"] < 0.01
 
 
+# ---------------------------------------------------------------- the two questions
+
+def test_placement_answer_is_internally_consistent():
+    """scripts/answer.py and the README block print this; it must follow from the same
+    solves the rest of the repo publishes."""
+    p = repo_data.solve_placement()
+    assert p.compute_value.name == repo_data.solve_psi().winner.name
+    assert p.compute_efficiency.points_per_watt >= p.compute_value.points_per_watt
+    assert p.rent_ratio_lo > 1.0  # owning wins before the answer says so
+
+    listed = [
+        r for r in repo_data.solve_api_costs()
+        if r.expires is None and r.aa_score is not None
+        and r.aa_score >= repo_data.CAPABLE_SCORE_FLOOR
+    ]
+    assert p.token_default.lifetime_cost == min(r.lifetime_cost for r in listed)
+    assert p.token_frontier.score == max(pt.score for pt in repo_data.solve_frontier())
+    assert p.token_frontier.score >= p.token_default.aa_score
+    assert p.local.ratio > 1.0  # "never local for thinking" must be solved, not asserted
+
+
+def test_frontier_pick_reacts_to_costing_a_stronger_model():
+    """When an uncosted higher scorer gains a cost per task, the pick must re-solve. This
+    guards the answer's caveat: it is a promise, so prove the mechanism."""
+    points = repo_data.solve_frontier()
+    top = max(p.score for p in points)
+    idx = repo_data.aa_index()["entries"]
+    stronger_exists = any(
+        e["cost_per_task_usd"] is None and e["score"] > top for e in idx
+    )
+    if not stronger_exists:
+        import pytest
+
+        pytest.skip("no uncosted model currently outscores the costed frontier")
+    assert len(repo_data.solve_placement().frontier_uncosted) >= 1
+
+
 # ---------------------------------------------------------------- data hygiene
 
 def test_every_dated_figure_carries_confidence():

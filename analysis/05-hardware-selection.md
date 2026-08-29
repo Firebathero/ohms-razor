@@ -32,6 +32,30 @@ Winner: **AMD EPYC 9965** at $2.04 per SPECrate-point-year over 10 years ($22,80
 The interactive companion is `spreadsheets/compute-node-model.xlsx`; a parity test keeps
 this pipeline and that workbook agreeing cell for cell.
 
+## Compute per watt, as its own question
+
+Perf/watt is not a tie-breaker column inside the value question; it is the answer to a
+different question. Value (Psi) answers "what does a unit of work cost me"; efficiency
+(points per wall watt) answers "what fits under a watt budget". They rank the candidates
+differently, so they get their own chart.
+
+![Compute per watt vs Psi](assets/compute_per_watt.png)
+
+<!-- gen:compute_per_watt -->
+| CPU | pts per wall watt | Efficiency rank | Psi rank |
+|---|---:|---:|---:|
+| AMD EPYC 9845 | 2.96 | 1 | 3 |
+| AMD EPYC 9965 | 2.73 | 2 | 1 |
+| AMD EPYC 9745 | 2.63 | 3 | 4 |
+| AMD EPYC 9755 | 2.09 | 4 | 2 |
+
+**AMD EPYC 9845** is the efficiency champion at 2.96 pts/W and **AMD EPYC 9965** wins on value at 2.73 pts/W; the value ranking holds at every electricity price in the sensitivity table, so the efficiency answer only becomes the buying answer when watts, not dollars, are the binding constraint (a power-capped circuit, a thermal envelope, a UPS budget).
+<!-- /gen:compute_per_watt -->
+
+The 9965-vs-9845 efficiency comparison sits inside the error bar of the 450W derate
+estimate (README weakness 2); a measured 450-vs-500 run on the 9965 would firm up both
+ends of this chart and is on the open-questions list.
+
 ## Sensitivity
 
 Electricity price:

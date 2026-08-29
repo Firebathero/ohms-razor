@@ -359,6 +359,91 @@ def render_apple_lineup() -> str:
     return "\n".join(lines)
 
 
+def placement_lines() -> list[str]:
+    """The two questions, answered from current data. Plain text so the terminal answerer
+    (scripts/answer.py) and the README block stay identical."""
+    p = repo_data.solve_placement()
+    op = repo_data.operating_inputs()
+    ref = repo_data.reference_workload()
+
+    default_line = (
+        f"{p.token_default.id}: AA {p.token_default.aa_score}, "
+        f"{usd(p.token_default_cost_per_task, 3)}/task, {usd(p.token_default.lifetime_cost, 0)} "
+        f"for the {ref.years:.0f}-yr reference workload at list"
+    )
+    if p.token_default_promo is not None:
+        default_line += (
+            f" ({usd(p.token_default_promo.lifetime_cost, 0)} on promo through "
+            f"{p.token_default_promo.expires})"
+        )
+    frontier_line = (
+        f"{p.token_frontier.model}: AA {p.token_frontier.score}, "
+        f"{usd(p.token_frontier.cost_per_task, 2)}/task, the cheapest costed frontier point"
+    )
+    if p.frontier_multiple_per_task is not None:
+        frontier_line += f" ({p.frontier_multiple_per_task:.1f}x default per task)"
+
+    lines = [
+        "THE COMPUTE QUESTION  (deterministic work: builds, simulation, batch jobs)",
+        f"  own it           {p.compute_value.name} at {usd(p.compute_value.psi, 2)} per "
+        f"SPECrate-point-year all-in over {op.years:.0f} years",
+        f"  renting instead  {p.rent_ratio_lo:.1f}x to {p.rent_ratio_hi:.1f}x the cost of owning, same unit",
+        f"  watts binding?   {p.compute_efficiency.name} is the efficiency pick at "
+        f"{p.compute_efficiency.points_per_watt:.2f} pts per wall watt",
+        "",
+        "THE TOKENS QUESTION  (thinking)",
+        f"  default          {default_line}",
+        f"  frontier calls   {frontier_line}",
+        f"  local inference  no: the best passing local config runs {p.local.ratio:.1f}x cloud "
+        f"cost at AA {p.local.local_score}",
+        "  the local box    hosts the agent: orchestration, sandboxes, a small resident triage model",
+        "",
+    ]
+    caveat = (
+        "Caveats, solved with the answer: "
+        + ", ".join(p.frontier_uncosted)
+        + " sit at or above the frontier pick's score with no cost per task yet (TODO in "
+        "data/benchmarks.yaml); the pick re-solves when they are costed."
+    )
+    for model_id, cost, mult in p.frontier_priced_workload:
+        caveat += (
+            f" {model_id} is the one frontier model with API pricing here and prices the "
+            f"reference workload at {usd(cost, 0)} ({mult:.1f}x default), which is why the "
+            "frontier tier is for rare calls, not the loop."
+        )
+    caveat += " Every price is VOLATILE; run scripts/check_staleness.py before trusting."
+    lines.append(caveat)
+    return lines
+
+
+def render_the_answer() -> str:
+    return "```text\n" + "\n".join(placement_lines()) + "\n```"
+
+
+def render_compute_per_watt() -> str:
+    sol = repo_data.solve_psi()
+    by_eps = sorted(sol.evaluations, key=lambda e: e.points_per_watt, reverse=True)
+    by_psi = sorted(sol.evaluations, key=lambda e: e.psi)
+    lines = [
+        "| CPU | pts per wall watt | Efficiency rank | Psi rank |",
+        "|---|---:|---:|---:|",
+    ]
+    for e in by_eps:
+        lines.append(
+            f"| {e.name} | {e.points_per_watt:.2f} | {by_eps.index(e) + 1} | {by_psi.index(e) + 1} |"
+        )
+    eff, val = by_eps[0], by_psi[0]
+    lines.append("")
+    lines.append(
+        f"**{eff.name}** is the efficiency champion at {eff.points_per_watt:.2f} pts/W and "
+        f"**{val.name}** wins on value at {val.points_per_watt:.2f} pts/W; the value ranking "
+        "holds at every electricity price in the sensitivity table, so the efficiency answer "
+        "only becomes the buying answer when watts, not dollars, are the binding constraint "
+        "(a power-capped circuit, a thermal envelope, a UPS budget)."
+    )
+    return "\n".join(lines)
+
+
 def render_findings_summary() -> str:
     api = repo_data.solve_api_costs()
     ref = repo_data.reference_workload()
@@ -417,6 +502,8 @@ def render_freshness() -> str:
 
 RENDERERS = {
     "last_solved": render_last_solved,
+    "the_answer": render_the_answer,
+    "compute_per_watt": render_compute_per_watt,
     "workload_derivation": render_workload_derivation,
     "findings_summary": render_findings_summary,
     "freshness": render_freshness,
