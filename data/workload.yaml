@@ -1,0 +1,16 @@
+# The reference work unit. Every comparison in this repo is priced against this one fixed
+# workload so nothing can hide in assumptions. It is a chosen unit of account, not a claim
+# about anyone's actual usage. Change it and re-solve; nothing downstream hard-codes the
+# derived totals.
+reference_workload:
+  output_tokens_per_year: 315.0e+6
+  input_tokens_per_year: 630.0e+6
+  cache_hit_rate: 0.80
+  years: 10
+  date: 2026-08-29
+  confidence: DEFINITION
+  source: sources#handoff
+  notes: >-
+    Solved at build time: lifetime output, fresh input, and cached input totals, and the
+    sustained output rate the workload demands around the clock. That sustained rate is the
+    constraint that disqualifies most local hardware before cost enters the picture.

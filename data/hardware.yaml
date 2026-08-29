@@ -1,0 +1,131 @@
+# Local inference candidates: unified-memory machines a person would actually put in a
+# closet. Bandwidth is the number that matters; token generation is memory-bandwidth-bound.
+# Measured throughput always takes precedence over the Model 2 upper-bound estimate.
+# Freshness window: 30 days on prices; measured figures keep their tags.
+machines:
+  - id: mac-mini-m6
+    name: Mac mini M6
+    price_usd: 899
+    price_confidence: CONFIRMED
+    memory_gb_max: 32
+    bandwidth_nominal_gb_s: 170
+    bandwidth_effective_gb_s: null   # TODO: unverified
+    date: 2026-08-25
+    source: sources#apple-lineup
+    notes: >-
+      Cannot hold a 70B-class model at usable quantization and context. Fails on capacity
+      before throughput is even a question. Memory ceiling is down from the M4 Pro era; see
+      the supply-vs-demand analysis.
+
+  - id: mac-mini-m5-pro
+    name: Mac mini M5 Pro
+    price_usd: 1699
+    price_confidence: CONFIRMED
+    price_as_configured_usd: 2700
+    price_as_configured_confidence: VOLATILE
+    price_as_configured_note: approximately, at the 64GB ceiling
+    memory_gb_max: 64
+    bandwidth_nominal_gb_s: 307
+    bandwidth_effective_gb_s: null   # TODO: unverified
+    date: 2026-08-25
+    source: sources#apple-lineup
+    throughput:
+      - model: dense-70b
+        quant: q4
+        tok_s: 5.5
+        tok_s_range: [5, 6]
+        confidence: ESTIMATE
+        note: handoff estimate from bandwidth arithmetic, not a bench run
+
+  - id: gmktec-evo-x2
+    name: GMKtec EVO-X2 (Strix Halo)
+    price_usd: 1499
+    price_confidence: VOLATILE
+    memory_gb_max: 128
+    bandwidth_nominal_gb_s: 256
+    bandwidth_effective_gb_s: 215
+    bandwidth_effective_confidence: MEASURED
+    date: 2026-08-29
+    source: sources#strix-halo
+    throughput:
+      - model: dense-70b
+        quant: q4
+        tok_s: 5
+        confidence: ESTIMATE
+        note: handoff estimate; fails the sustained-rate bar
+      - model: gpt-oss-120b
+        quant: mxfp4
+        tok_s: 31
+        confidence: MEASURED
+        date: 2026-08-29
+        note: the one local configuration in this set that clears the bar
+
+  - id: mac-studio-m5-ultra
+    name: Mac Studio M5 Ultra
+    price_usd: 15000
+    price_confidence: ESTIMATE   # handoff weakness 5: the machine exists, the price was a guess
+    price_note: "TODO: unverified. 512GB configuration; price not confirmed anywhere."
+    memory_gb_max: 512
+    bandwidth_nominal_gb_s: 1200
+    bandwidth_effective_gb_s: null   # TODO: unverified
+    date: 2026-08-25
+    source: sources#apple-lineup
+    throughput:
+      - model: moe-671b
+        quant: q4
+        tok_s: 32
+        tok_s_range: [25, 40]
+        confidence: ESTIMATE
+        note: handoff estimate; passes the bar if real
+
+# Model weight geometry used by the throughput and MoE models. Shared and per-expert
+# splits are derived at solve time from total/active/expert counts; they are not stored.
+model_params:
+  - id: gpt-oss-120b
+    total_params_b: 117
+    active_params_b: 5.1
+    params_confidence: CONFIRMED
+    n_experts: 128
+    experts_per_token: 4
+    experts_confidence: CONFIRMED
+    source: sources#gpt-oss-120b-params
+  - id: dense-70b
+    total_params_b: 70
+    active_params_b: 70
+    params_confidence: DEFINITION
+    note: stand-in for the Llama-3.3-70B class
+  - id: moe-671b
+    total_params_b: 671
+    active_params_b: 37
+    params_confidence: CONFIRMED
+    source: sources#moe-671b-params
+    note: DeepSeek V3/R1-class geometry, used only for the M5 Ultra estimate
+
+# Bytes per parameter by quantization, used only by the Model 2 upper-bound estimator.
+quant_bytes_per_param:
+  - quant: q4
+    bytes: 0.60
+    confidence: ESTIMATE
+    note: Q4_K_M-class GGUF averages about 4.8 bits per weight including scales
+  - quant: mxfp4
+    bytes: 0.53
+    confidence: ESTIMATE
+    note: 4.25 bits per weight effective for MXFP4 block format
+  - quant: q8
+    bytes: 1.06
+    confidence: ESTIMATE
+
+# The always-on box scenario used for the local cost-per-token finding (F4).
+local_box_scenario:
+  machine: gmktec-evo-x2
+  model: gpt-oss-120b
+  years: 5
+  utilization: 1.0
+  wall_draw_w: 140
+  wall_draw_confidence: DERIVED
+  wall_draw_note: >-
+    Back-solved from the handoff's five-year power figure of about $1,227 at $0.20/kWh
+    (140W x 8766 h/yr x 5 yr x $0.20 / 1000 = $1,227.24). Nobody metered the box under
+    sustained decode; treat as the handoff's implied input.
+  date: 2026-08-29
+  confidence: ESTIMATE
