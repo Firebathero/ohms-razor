@@ -1,48 +1,41 @@
 # ohms-razor
 
-**Never use more model than the task needs.**
+Never use more model than the task needs.
 
 <!-- gen:last_solved -->
 **Last solved:** 2026-08-29. **3 figure(s) past their freshness window** (run `python scripts/check_staleness.py`).
 <!-- /gen:last_solved -->
 
-An always-on local box is where an agent lives; it is not where thinking happens. Hosting
-and inference are different workloads with different economics, and conflating them is how
-people buy the wrong hardware. This repo prices the placement decision (local box, cheap
-volume API tier, frontier API tier) from first principles and publishes the working.
+Two questions, answered from dated data:
 
-There are no static numbers here. Every figure in every table is solved from `data/` at
-build time, every input carries a pull date and a confidence tag, and the conclusions are
-enforced by tests that recompute them from live data. When the data moves and a conclusion
-flips, the tests fail, the tables re-solve, and the reversal gets published in the
-changelog below. That event is the point of the repo, not a failure of it.
+1. What do I buy for compute? (builds, sims, batch jobs)
+2. What do I use for tokens? (thinking)
 
-## The constraint that does the most work
+The short version: buy the compute, rent the tokens. An always-on box is where an agent
+lives, not where thinking happens.
 
-One line of arithmetic disqualifies most local hardware before cost is even considered.
-All comparisons use one fixed reference workload (`data/workload.yaml`) so nothing can
-hide in assumptions:
+One rule: no static numbers. Every figure below is solved from `data/*.yaml` when the
+build runs. Change an input, rerun, everything updates. If a conclusion flips, a test
+fails and the flip goes in the changelog.
 
-<!-- gen:workload_derivation -->
-```text
-315,000,000 output tokens/yr / 31,557,600 s/yr = 9.98 tok/s
-sustained, 24/7/365, zero downtime
+## Run it
 
-over 10 years at 80% cache hit:
-  3.15B output tokens
-  1.26B fresh input tokens
-  5.04B cached input tokens
+```bash
+pip install -r requirements.txt
+
+python scripts/sotw.py            # the answer + what's stale
+python scripts/sotw.py update     # after editing data/: re-solve docs, plots, reports, run checks
+python scripts/sotw.py tokens     # write reports/latest-tokens.md
+python scripts/sotw.py compute    # write reports/latest-compute.md
+pytest                            # the checks on their own
 ```
-<!-- /gen:workload_derivation -->
 
-A box that cannot sustain that rate cannot produce the workload at any duty cycle.
+## What you get
 
-## The two questions, answered
-
-The modern placement decision is really two questions: what do I use for compute
-(deterministic work), and what do I use for tokens for a given task. This is the repo's
-current answer, solved from `data/` on every build (`python scripts/answer.py` prints the
-same thing in the terminal):
+- The answer, below (terminal version: `python scripts/answer.py`)
+- `REPORT.md`: answer, findings, freshness on one page
+- `reports/latest-tokens.md` and `reports/latest-compute.md`: the deep dives
+- Two plots, staleness flags, and the test suite guarding the conclusions
 
 <!-- gen:the_answer -->
 ```text
@@ -61,25 +54,58 @@ Caveats, solved with the answer: kimi-k3, glm-5.3-max, claude-opus-5 sit at or a
 ```
 <!-- /gen:the_answer -->
 
-## Known weaknesses, first
+## What you can change
 
-These are the strongest available rebuttals, stated before the findings they weaken:
+Every input lives in `data/*.yaml` with a date and a confidence tag. Edit, keep the old
+value in `history`, run `python scripts/sotw.py update`. The knobs that matter:
 
-1. **Batching favors the cloud case less than the tables imply.** The local figures assume
-   batch size 1 against batched providers. `analysis/04-moe-asymmetry.md` models the
-   amortization first-order instead of hiding it; measured curves are the top open question.
-2. **The 9965's 450W derate (phi = 0.99) is an extrapolation**, not a measurement, and the
-   9965-vs-9845 perf/watt comparison sits inside its error bar.
-3. **1P SPECrate figures are scaled from 2P** by a factor calibrated on the one CPU with
-   both published. It cancels out of rankings; absolute levels inherit its error.
-4. **The 9845 has one SPECrate submission.** Thinnest evidence in the set.
-5. **The Mac Studio M5 Ultra price is a guess** and is tagged ESTIMATE where it appears.
-6. **Index parity is not task parity.** Models tied on the AA index are not interchangeable
-   on a specific job.
-7. **Ten-year amortization is aggressive.** Five years is the realistic economic life; the
-   hold-period sensitivity table shows the numbers roughly doubling there.
-8. **The supply-vs-demand finding has a live counter-reading**, presented alongside it in
-   `analysis/06-supply-vs-demand.md`.
+<!-- gen:knobs -->
+| Knob | Where | Current | Moves |
+|---|---|---|---|
+| Workload | `workload.yaml` | 315M out/yr, 80% cache, 10 yr | the throughput bar and every API cost |
+| Electricity | `assumptions.yaml` | $0.20/kWh | Psi and local $/Mtok |
+| Hold period | `assumptions.yaml` | 10 yr | Psi roughly doubles at 5 |
+| DDR5 price | `assumptions.yaml` | $35.70/GB (2026-08-14) | the biggest lever on Psi; never the ranking |
+| Utilization | `assumptions.yaml` | 1 | local break-evens |
+| Prices and scores | `model_pricing.yaml`, `benchmarks.yaml` | dated per entry | the whole token answer |
+<!-- /gen:knobs -->
+
+## Pick your axis
+
+The compute pick optimizes a formula, and which formula is your call:
+
+- **Value** (the default): Psi = TCO / (work x years), dollars per SPECrate-point-year,
+  lower wins. Capex, watts, cooling, and hold period all fold in.
+- **Efficiency**: SPECrate points per wall watt. Pick this axis when watts are the
+  constraint: a capped circuit, a thermal envelope, a UPS budget.
+
+The two axes disagree on the winner right now (a test asserts it), which is why both are
+solved and plotted instead of merged:
+
+![Compute per watt vs Psi](analysis/assets/compute_per_watt.png)
+
+Tokens has its own axis pair, capability vs cost per task, and the frontier is currently
+a cliff: a cheap near-frontier tier, an expensive frontier tier, nothing in between.
+
+![Capability vs cost Pareto frontier](analysis/assets/pareto_frontier.png)
+
+## The bar
+
+One line of arithmetic filters local hardware before cost even comes up:
+
+<!-- gen:workload_derivation -->
+```text
+315,000,000 output tokens/yr / 31,557,600 s/yr = 9.98 tok/s
+sustained, 24/7/365, zero downtime
+
+over 10 years at 80% cache hit:
+  3.15B output tokens
+  1.26B fresh input tokens
+  5.04B cached input tokens
+```
+<!-- /gen:workload_derivation -->
+
+A box that can't sustain that rate can't produce the workload at any duty cycle.
 
 ## Findings
 
@@ -95,43 +121,22 @@ These are the strongest available rebuttals, stated before the findings they wea
 | F7 | Owning beats renting for deterministic compute | AMD EPYC 9965 at $2.04/pt-yr; renting runs 4.2x to 8.1x owning | 2026-06-15 |
 <!-- /gen:findings_summary -->
 
-The tokens question, plotted (F2):
+Full write-ups, including what would falsify each one: `analysis/01` through `analysis/06`.
 
-![Capability vs cost Pareto frontier](analysis/assets/pareto_frontier.png)
+## Known weaknesses
 
-The compute question, plotted (F7): efficiency and value are different answers, which is
-why perf/watt gets its own chart instead of a column.
+Up front on purpose. Details in `analysis/`.
 
-![Compute per watt vs Psi](analysis/assets/compute_per_watt.png)
+- Local figures assume batch size 1; batching is modelled in `analysis/04` but not measured
+- The 9965's 450W derate (phi 0.99) is an estimate, nobody has measured it
+- 1P SPECrate is scaled from 2P; rankings survive, absolute levels inherit the error
+- The 9845 has a single SPECrate submission
+- The Mac Studio M5 Ultra price is a guess, tagged ESTIMATE
+- Index parity is not task parity
+- 10-year amortization is aggressive; numbers roughly double at 5
+- The supply-vs-demand finding has a live counter-reading, presented in `analysis/06`
 
-Each finding has a full write-up in `analysis/`, prose around solved tables: mechanism,
-numbers, and what would falsify it.
-
-## How to reproduce
-
-```bash
-git clone https://github.com/Firebathero/ohms-razor
-cd ohms-razor
-pip install -r requirements.txt
-
-python scripts/sotw.py                # state of the world: the answer + what is stale
-python scripts/sotw.py update         # re-solve everything, run checks, list manual re-pulls
-python scripts/sotw.py tokens         # write reports/latest-tokens.md
-python scripts/sotw.py compute        # write reports/latest-compute.md
-python scripts/answer.py              # just the answer, in the terminal
-cat REPORT.md                         # the one-page report (regenerated by sotw update)
-pytest                                # formula checks, workbook parity, live conclusions
-```
-
-The pieces `sotw.py update` runs are also standalone: `check_staleness.py`,
-`build_tables.py` (`--check` verifies the committed docs match the data layer),
-`plot_frontier.py`, `plot_watts.py`.
-
-The maintenance loop (monthly or on demand) is in `CONTRIBUTING.md`: re-pull stale
-figures, keep old values in `history`, re-solve, and let the conclusion tests tell you if
-anything flipped.
-
-## Data freshness
+## Trust
 
 <!-- gen:freshness -->
 | Category | Figures | Oldest | Window | Status |
@@ -144,14 +149,17 @@ anything flipped.
 SPECrate submissions never expire and are not policed.
 <!-- /gen:freshness -->
 
-## Repo map
+Tags: MEASURED, CONFIRMED, DERIVED, ESTIMATE, VOLATILE, EXPIRES. Estimates never get
+upgraded to facts. Windows and the update loop: `CONTRIBUTING.md`.
+
+## Layout
 
 ```text
 REPORT.md      the output: answer, findings, freshness on one solved page
 reports/       latest-tokens.md and latest-compute.md, per-question deep reports
 data/          every figure: value, unit, date, source, confidence (the only ground truth)
 models/        models 1-5 as pure functions, no I/O
-scripts/       the solver, table generator, staleness gate, plot
+scripts/       sotw, the solver, table generator, staleness gate, plots
 tests/         formula checks, workbook parity, conclusions-as-relations
 analysis/      one document per finding, prose around solved tables
 spreadsheets/  the original interactive Psi workbook (kept in parity by test)
@@ -173,7 +181,7 @@ spreadsheets/  the original interactive Psi workbook (kept in parity by test)
   `reports/latest-tokens.md` and `reports/latest-compute.md` (per-question deep reports),
   and `scripts/sotw.py` with `show`, `update`, `tokens`, `compute` so the state of the
   world is one command to read and one command to refresh.
-
-## License
+- **2026-08-29** README rewritten usage-first: run it, what you get, what you can change,
+  pick your axis. The knobs table is generated so its current values can never go stale.
 
 MIT. See `LICENSE`.

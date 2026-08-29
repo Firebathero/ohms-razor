@@ -457,6 +457,56 @@ def render_compute_per_watt() -> str:
     return "\n".join(lines)
 
 
+def render_knobs() -> str:
+    """The inputs that move the answer, with their current values read from data/."""
+    w = repo_data.load("workload")["reference_workload"]
+    a = repo_data.load("assumptions")
+    op = a["operating"]
+    ram = a["memory_pricing"]["ddr5_6400_rdimm_usd_per_gb"]
+    rows = [
+        (
+            "Workload",
+            "`workload.yaml`",
+            f"{float(w['output_tokens_per_year']) / 1e6:,.0f}M out/yr, "
+            f"{float(w['cache_hit_rate']):.0%} cache, {w['years']} yr",
+            "the throughput bar and every API cost",
+        ),
+        (
+            "Electricity",
+            "`assumptions.yaml`",
+            f"${float(op['electricity_usd_per_kwh']['value']):.2f}/kWh",
+            "Psi and local $/Mtok",
+        ),
+        (
+            "Hold period",
+            "`assumptions.yaml`",
+            f"{op['hold_years']['value']:g} yr",
+            "Psi roughly doubles at 5",
+        ),
+        (
+            "DDR5 price",
+            "`assumptions.yaml`",
+            f"${float(ram['value']):.2f}/GB ({ram['date']})",
+            "the biggest lever on Psi; never the ranking",
+        ),
+        (
+            "Utilization",
+            "`assumptions.yaml`",
+            f"{float(op['utilization']['value']):g}",
+            "local break-evens",
+        ),
+        (
+            "Prices and scores",
+            "`model_pricing.yaml`, `benchmarks.yaml`",
+            "dated per entry",
+            "the whole token answer",
+        ),
+    ]
+    lines = ["| Knob | Where | Current | Moves |", "|---|---|---|---|"]
+    lines += [f"| {k} | {where} | {cur} | {moves} |" for k, where, cur, moves in rows]
+    return "\n".join(lines)
+
+
 def render_findings_summary() -> str:
     api = repo_data.solve_api_costs()
     ref = repo_data.reference_workload()
@@ -516,6 +566,7 @@ def render_freshness() -> str:
 RENDERERS = {
     "last_solved": render_last_solved,
     "the_answer": render_the_answer,
+    "knobs": render_knobs,
     "compute_per_watt": render_compute_per_watt,
     "workload_derivation": render_workload_derivation,
     "findings_summary": render_findings_summary,
