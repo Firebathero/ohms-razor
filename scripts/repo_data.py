@@ -142,20 +142,21 @@ def solve_api_costs(today: date | None = None) -> list[ApiCostRow]:
     today = today or date.today()
     rows: list[ApiCostRow] = []
     for m in priced_models():
+        score = scores.get(m.id, scores.get(m.id.removesuffix("-cloud")))
         base = api_cost(m.pricing, ref.lifetime)
         if m.peak is None:
-            rows.append(ApiCostRow(m.id, f"{m.id} (list)", base, scores.get(m.id), m.date, m.confidence, None))
+            rows.append(ApiCostRow(m.id, f"{m.id} (list)", base, score, m.date, m.confidence, None))
         else:
             f_peak, mult = peak_exposure(m.peak)
             rows.append(
-                ApiCostRow(m.id, f"{m.id} (off-peak only)", base, scores.get(m.id), m.date, m.confidence, None)
+                ApiCostRow(m.id, f"{m.id} (off-peak only)", base, score, m.date, m.confidence, None)
             )
             rows.append(
                 ApiCostRow(
                     m.id,
                     f"{m.id} (24/7, {f_peak:.0%} peak)",
                     effective_cost(base, f_peak, mult),
-                    scores.get(m.id),
+                    score,
                     m.date,
                     m.confidence,
                     None,
@@ -168,7 +169,7 @@ def solve_api_costs(today: date | None = None) -> list[ApiCostRow]:
                     m.id,
                     f"{m.id} (promo)",
                     promo_cost,
-                    scores.get(m.id),
+                    score,
                     m.date,
                     "EXPIRES",
                     m.promo["expires"],
