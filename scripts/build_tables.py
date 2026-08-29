@@ -24,7 +24,7 @@ import check_staleness  # noqa: E402
 import repo_data  # noqa: E402
 from repo_data import MTOK, ROOT  # noqa: E402
 
-DOCS = [ROOT / "README.md", *sorted((ROOT / "analysis").glob("*.md"))]
+DOCS = [ROOT / "README.md", ROOT / "REPORT.md", *sorted((ROOT / "analysis").glob("*.md"))]
 
 MARKER = re.compile(r"(<!-- gen:(?P<key>[a-z0-9_]+) -->\n)(?P<body>.*?)(<!-- /gen:(?P=key) -->)", re.S)
 
