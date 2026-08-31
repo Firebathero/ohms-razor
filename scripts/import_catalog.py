@@ -69,6 +69,12 @@ SCHEMAS: dict[str, dict[str, Any]] = {
             "idle_w", "load_w", "source", "confidence", "notes",
         ],
     },
+    "scores": {
+        "file": "benchmarks.yaml",
+        "collection": "aa_intelligence_index",
+        "required": ["model", "score"],
+        "columns": ["model", "score", "cost_per_task_usd", "note"],
+    },
     # Measured throughput, one row per machine/model/quant. Kept separate from the machine
     # row because one machine accumulates many measurements over time, from different
     # people running different models, and each carries its own source.
@@ -187,9 +193,58 @@ def merge_throughput(rows: list[dict[str, Any]], dry_run: bool) -> int:
     return 0
 
 
+def merge_scores(rows: list[dict[str, Any]], dry_run: bool) -> int:
+    """Capability scores into the index. A score without a cost per task still goes in:
+    it gates candidates even when it cannot place them on the cost axis."""
+    path = repo_data.DATA / "benchmarks.yaml"
+    blob = yaml.safe_load(path.read_text(encoding="utf-8"))
+    idx = blob["aa_intelligence_index"]
+    entries = idx["entries"]
+    by_model = {e["model"]: e for e in entries}
+    added, filled, conflicts = [], [], []
+    for row in rows:
+        model = row["model"]
+        current = by_model.get(model)
+        if current is None:
+            entry = {"model": model, "score": row["score"],
+                     "cost_per_task_usd": row.get("cost_per_task_usd")}
+            if row.get("note"):
+                entry["note"] = row["note"]
+            if not dry_run:
+                entries.append(entry)
+            added.append(model)
+            continue
+        for key in ("score", "cost_per_task_usd"):
+            if key not in row:
+                continue
+            if current.get(key) is None:
+                if not dry_run:
+                    current[key] = row[key]
+                filled.append(f"{model}.{key}")
+            elif abs(float(current[key]) - float(row[key])) > 1e-9:
+                conflicts.append(f"{model}.{key}: data has {current[key]}, csv has {row[key]}")
+    print(f"scores: {len(rows)} rows read")
+    print(f"  added      {len(added)}")
+    print(f"  filled     {len(filled)}")
+    if conflicts:
+        print(f"  CONFLICTS  {len(conflicts)} (not applied):")
+        for c in conflicts:
+            print(f"    {c}")
+    if dry_run:
+        print("\ndry run: nothing written")
+        return 0
+    path.write_text(
+        yaml.safe_dump(blob, sort_keys=False, allow_unicode=True, width=100), encoding="utf-8"
+    )
+    print(f"\nwrote {path.relative_to(repo_data.ROOT)}")
+    return 0
+
+
 def merge(kind: str, rows: list[dict[str, Any]], dry_run: bool) -> int:
     if kind == "throughput":
         return merge_throughput(rows, dry_run)
+    if kind == "scores":
+        return merge_scores(rows, dry_run)
     schema = SCHEMAS[kind]
     path = repo_data.DATA / schema["file"]
     blob = yaml.safe_load(path.read_text(encoding="utf-8"))

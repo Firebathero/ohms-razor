@@ -88,12 +88,19 @@ def render_cache_sensitivity() -> str:
     ref = repo_data.reference_workload()
     models = {m.id: m for m in repo_data.priced_models()}
     winner = models[repo_data.volume_tier_pick().id]
+    # Only rivals that clear the capability floor. A model with a nearly free cache but a
+    # score far below the bar is not a challenger for the volume tier, and comparing
+    # against one would answer an objection nobody made.
+    capable = {
+        e["model"] for e in repo_data.aa_index()["entries"]
+        if e["score"] >= repo_data.CAPABLE_SCORE_FLOOR
+    }
     rivals = [
         m for m in repo_data.priced_models()
-        if m.id != winner.id and m.pricing.cached_input_per_mtok is not None
+        if m.id != winner.id and m.pricing.cached_input_per_mtok is not None and m.id in capable
     ]
     if not rivals:
-        return "Only one priced model carries a cache rate, so there is no comparison to draw."
+        return "No other capable model publishes a cache rate, so there is no comparison to draw."
     rival = min(rivals, key=lambda m: m.pricing.cached_input_per_mtok)
     rows = repo_data.cache_sensitivity(winner.id, rival.id, [0.0, 0.25, 0.5, 0.75, 0.8, 1.0])
     lines = [
@@ -145,20 +152,22 @@ def render_frontier_table() -> str:
     uncosted = [e for e in idx["entries"] if e["cost_per_task_usd"] is None]
     for e in uncosted:
         lines.append(f"| {e['model']} | {e['score']} | TODO: unverified | | not placeable yet |")
+    on_front = [p for p in points if p.on_frontier]
     lines.append("")
     lines.append(
         f"Baseline is {baseline.model}, the cheapest costed entry, solved rather than named. "
-        "Models the handoff placed between the tiers, scoring at or below the volume tier while "
-        "costing a multiple of it (individual figures pending re-pull): "
-        + ", ".join(idx["midrange_noted"]) + "."
+        f"{len(on_front)} of {len(points)} costed models are Pareto-optimal: "
+        + ", ".join(f"{p.model} (AA {p.score}, {usd(p.cost_per_task, 2)})" for p in on_front)
+        + "."
     )
-    survey = repo_data.load("benchmarks").get("survey", {})
-    if survey.get("last_surveyed") is None:
+    if len(on_front) > 3:
+        steps = []
+        for a, b in zip(on_front, on_front[1:]):
+            steps.append(f"{b.score - a.score} pts for {b.cost_per_task / a.cost_per_task:.1f}x")
         lines.append("")
         lines.append(
-            "This list has never been surveyed for entrants (see the survey block in "
-            "`data/benchmarks.yaml`), so read it as the models that were on the list, not the "
-            "models that exist."
+            "Read as steps up the curve: " + "; then ".join(steps) + ". Capability is bought in "
+            "increments here, not in one jump, which is what a curve means and a cliff does not."
         )
     return "\n".join(lines)
 
@@ -450,19 +459,27 @@ def tokens_question_lines(p: "repo_data.Placement") -> list[str]:
 
 
 def answer_caveat(p: "repo_data.Placement") -> str:
-    caveat = (
-        "Caveats, solved with the answer: "
-        + ", ".join(p.frontier_uncosted)
-        + " sit at or above the frontier pick's score with no cost per task yet (TODO in "
-        "data/benchmarks.yaml); the pick re-solves when they are costed."
-    )
-    for model_id, cost, mult in p.frontier_priced_workload:
-        caveat += (
-            f" {model_id} is the one frontier model with API pricing here and prices the "
-            f"reference workload at {usd(cost, 0)} ({mult:.1f}x default), which is why the "
-            "frontier tier is for rare calls, not the loop."
+    """Summarize what could move the answer. Written to scale: with a wide catalog there
+    are dozens of frontier models, so this reports the shape of the tier rather than
+    reciting it."""
+    parts: list[str] = []
+    if p.frontier_uncosted:
+        names = ", ".join(p.frontier_uncosted[:4])
+        more = f" and {len(p.frontier_uncosted) - 4} others" if len(p.frontier_uncosted) > 4 else ""
+        parts.append(
+            f"{names}{more} sit at or above the frontier pick's score with no cost per task yet, "
+            "so the frontier pick re-solves when they are costed."
         )
-    caveat += " Every price is VOLATILE; run scripts/check_staleness.py before trusting."
+    if p.frontier_priced_workload:
+        costs = sorted(p.frontier_priced_workload, key=lambda r: r[1])
+        cheapest, dearest = costs[0], costs[-1]
+        parts.append(
+            f"The frontier tier is for rare calls, not the loop: pricing the reference workload "
+            f"against its {len(costs)} priced models runs from {usd(cheapest[1], 0)} "
+            f"({cheapest[0]}, {cheapest[2]:.0f}x the default) to {usd(dearest[1], 0)} "
+            f"({dearest[0]}, {dearest[2]:.0f}x)."
+        )
+    parts.append("Every price is VOLATILE; run scripts/check_staleness.py before trusting.")
 
     import refresh_plan
 
@@ -471,12 +488,14 @@ def answer_caveat(p: "repo_data.Placement") -> str:
         if repo_data.load(name).get("survey", {}).get("last_surveyed") is None
     ]
     if unsurveyed:
-        caveat += (
-            f" And the harder caveat: {len(unsurveyed)} candidate sets ({', '.join(unsurveyed)}) "
-            "have never been surveyed for entrants, so these picks are the best of an inherited "
-            "list, not the best available. Run /refresh-data to re-open them."
+        noun = "set" if len(unsurveyed) == 1 else "sets"
+        parts.append(
+            f"And the harder caveat: {len(unsurveyed)} candidate {noun} "
+            f"({', '.join(unsurveyed)}) {'has' if len(unsurveyed) == 1 else 'have'} never been "
+            "surveyed for entrants, so that pick is the best of an inherited list, not the best "
+            "available. Run /refresh-data to re-open it."
         )
-    return caveat
+    return "Caveats, solved with the answer: " + " ".join(parts)
 
 
 def placement_lines() -> list[str]:
@@ -637,7 +656,7 @@ def render_findings_summary() -> str:
     ref = repo_data.reference_workload()
     capable = [r for r in api if r.aa_score is not None and r.aa_score >= 50 and r.expires is None]
     cheapest = min(capable, key=lambda r: r.lifetime_cost)
-    frontier = repo_data.solve_frontier()
+    frontier = [p for p in repo_data.solve_frontier() if p.on_frontier]
     f_lo = min(frontier, key=lambda p: p.cost_per_task)
     f_hi = max(frontier, key=lambda p: p.cost_per_task)
     bar, rows = repo_data.solve_local_bar()
@@ -653,9 +672,11 @@ def render_findings_summary() -> str:
             f"| F1 | Renting beats self-hosting for the reference workload | {cheapest.label}: "
             f"{usd(cheapest.lifetime_cost, 0)} for {ref.years:.0f} years at AA {cheapest.aa_score}, "
             f"cheapest capable path at list price | {cheapest.date} |",
-            f"| F2 | There is no midrange tier | Pareto frontier runs {usd(f_lo.cost_per_task, 3)}/task "
-            f"(AA {f_lo.score}) to {usd(f_hi.cost_per_task, 2)}/task (AA {f_hi.score}); everything "
-            f"between is dominated | {repo_data.aa_index()['date']} |",
+            f"| F2 | ~~There is no midrange tier~~ **Reversed 2026-08-31**: the frontier is a "
+            f"curve, not a cliff | {len(frontier)} of {len(repo_data.solve_frontier())} costed "
+            f"models are Pareto-optimal, spanning {usd(f_lo.cost_per_task, 2)}/task (AA "
+            f"{f_lo.score}) to {usd(f_hi.cost_per_task, 2)}/task (AA {f_hi.score}) | "
+            f"{repo_data.aa_index()['date']} |",
             f"| F3 | Local hardware fails the throughput bar before it fails on cost | Bar is "
             f"{bar:.2f} tok/s sustained; {len(measured_pass)} of {len([r for r in rows if r.tok_s is not None])} "
             f"tested configs clears it on measured numbers | 2026-08-29 |",

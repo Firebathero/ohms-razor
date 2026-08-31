@@ -103,12 +103,12 @@ THE COMPUTE QUESTION  (deterministic work: builds, simulation, batch jobs)
   watts binding?   AMD EPYC 9845 is the efficiency pick at 2.96 pts per wall watt
 
 THE TOKENS QUESTION  (thinking)
-  default          glm-5.3-flash: AA 57, $0.045/task, $1,915 for the 10-yr reference workload at list ($958 on promo through 2026-09-09)
-  frontier calls   grok-4.6: AA 60, $0.62/task, the cheapest costed frontier point (13.8x default per task)
+  default          glm-5.3-flash: AA 57, $0.090/task, $1,915 for the 10-yr reference workload at list ($958 on promo through 2026-09-09)
+  frontier calls   claude-opus-5: AA 63, $2.34/task, the cheapest costed frontier point (26.0x default per task)
   local inference  no: the best passing local config runs 4.1x cloud cost at AA 24
   the local box    hosts the agent: orchestration, sandboxes, a small resident triage model
 
-Caveats, solved with the answer: kimi-k3, glm-5.3-max, claude-opus-5 sit at or above the frontier pick's score with no cost per task yet (TODO in data/benchmarks.yaml); the pick re-solves when they are costed. kimi-k3 is the one frontier model with API pricing here and prices the reference workload at $52,542 (27.4x default), which is why the frontier tier is for rare calls, not the loop. Every price is VOLATILE; run scripts/check_staleness.py before trusting. And the harder caveat: 2 candidate sets (CPU candidates for the compute node, hosted models for the token tiers) have never been surveyed for entrants, so these picks are the best of an inherited list, not the best available. Run /refresh-data to re-open them.
+Caveats, solved with the answer: The frontier tier is for rare calls, not the loop: pricing the reference workload against its 26 priced models runs from $12,348 (glm-5, 6x the default) to $756,000 (gpt-5.5-pro, 395x). Every price is VOLATILE; run scripts/check_staleness.py before trusting. And the harder caveat: 1 candidate set (CPU candidates for the compute node) has never been surveyed for entrants, so that pick is the best of an inherited list, not the best available. Run /refresh-data to re-open it.
 ```
 <!-- /gen:the_answer -->
 
@@ -121,11 +121,11 @@ supposed to cover and when that question was last actually asked:
 | Candidate set | In catalog | Fully placeable | Last surveyed | Status |
 |---|---:|---|---|---|
 | CPU candidates for the compute node | 4 | 4 priced, 4 screenable | never | **never surveyed** |
-| hosted models for the token tiers | 4 | see report | never | **never surveyed** |
+| hosted models for the token tiers | 97 | see report | 2026-08-31 | current |
 | local machines for on-box inference | 37 | see report | 2026-08-31 | current |
-| the capability axis itself | 7 | 2 costed | 2026-08-26 | current |
+| the capability axis itself | 49 | 32 costed | 2026-08-31 | current |
 
-2 of 4 candidate sets were inherited from the original research and have never been re-opened. Every ranking drawn from them is "best of these", not "best available". Run `python scripts/refresh_plan.py` for the survey scope and where to look, or `/refresh-data` to have an agent do it.
+1 of 4 candidate sets were inherited from the original research and have never been re-opened. Every ranking drawn from them is "best of these", not "best available". Run `python scripts/refresh_plan.py` for the survey scope and where to look, or `/refresh-data` to have an agent do it.
 <!-- /gen:survey_status -->
 
 ## What you can change
@@ -180,7 +180,7 @@ A box that can't sustain that rate can't produce the workload at any duty cycle.
 | # | Finding | Solved right now | Data date |
 |---|---|---|---|
 | F1 | Renting beats self-hosting for the reference workload | glm-5.3-flash (list): $1,915 for 10 years at AA 57, cheapest capable path at list price | 2026-08-29 |
-| F2 | There is no midrange tier | Pareto frontier runs $0.045/task (AA 57) to $0.62/task (AA 60); everything between is dominated | 2026-08-26 |
+| F2 | ~~There is no midrange tier~~ **Reversed 2026-08-31**: the frontier is a curve, not a cliff | 7 of 32 costed models are Pareto-optimal, spanning $0.01/task (AA 10) to $2.34/task (AA 63) | 2026-08-31 |
 | F3 | Local hardware fails the throughput bar before it fails on cost | Bar is 9.98 tok/s sustained; 32 of 39 tested configs clears it on measured numbers | 2026-08-29 |
 | F4 | Even when local passes, it loses | $0.70/M local vs $0.17/M cloud, same weights, fully saturated: 4.1x | 2026-08-29 |
 | F5 | The local box is for hosting, not inference | Thesis; see README | |
@@ -210,10 +210,10 @@ Up front on purpose. Details in `analysis/`.
 <!-- gen:freshness -->
 | Category | Figures | Oldest | Window | Status |
 |---|---:|---|---|---|
-| benchmarks | 1 | 2026-08-26 | 60d | fresh |
+| benchmarks | 1 | 2026-08-31 | 60d | fresh |
 | dram | 1 | 2026-08-14 | 14d | **1 flagged** |
 | hardware_pricing | 43 | 2026-06-15 | 30d | **2 flagged** |
-| model_pricing | 5 | 2026-08-29 | 30d | fresh |
+| model_pricing | 98 | 2026-08-29 | 30d | fresh |
 
 SPECrate submissions never expire and are not policed.
 <!-- /gen:freshness -->
@@ -256,6 +256,19 @@ spreadsheets/  the original interactive Psi workbook (kept in parity by test)
   burn, watt cap, work floor) and picks the objective; the tool shaves what fails and
   plots what survives to `out/`. Added `scripts/refresh_plan.py` and the `/refresh-data`
   command so keeping the data current is the only judgment call left in the loop.
+- **2026-08-31 — CONCLUSION REVERSED. F2 "there is no midrange tier" is false.** The
+  model catalog went from 4 to 97 and the capability index from 7 entries to 49, of which
+  32 now carry a cost per task. The Pareto frontier has **7 points, not 2**: capability is
+  bought in increments, and there is a model scoring in the low 50s at roughly half the
+  volume tier's cost per task. The original "cliff" was drawn through the only two costed
+  models in the data, so it described the sample, not the market. The two-tier
+  architecture that finding justified should be revisited; `analysis/02` carries the full
+  reversal. Also corrected while surveying: the volume tier's cost per task was recorded
+  at half its published value ($0.045 against $0.09), grok-4.6's score and cost were both
+  stale (60/$0.62 against 61/$0.94), and **DeepSeek's peak windows are weekday-only**, so
+  an unscheduled 24/7 loop sits at f_peak 0.208 rather than the 0.29 the handoff assumed,
+  which had overstated its peak bill by a third. The frontier pick moved from grok-4.6 to
+  claude-opus-5 on score.
 - **2026-08-31** First real survey: local machines, 4 to 37 candidates, with 34 measured
   throughput figures from named sources. Three things moved. **The GMKtec EVO-X2 price
   rose 47% ($1,499 to $2,199)**, so the local box now costs $57.10/mo against $45.44,

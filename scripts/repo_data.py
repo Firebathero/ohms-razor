@@ -160,14 +160,20 @@ class ApiCostRow:
 
 
 def peak_exposure(peak: dict[str, Any]) -> tuple[float, float]:
-    """(f_peak, m_peak) for a 24/7 loop against the model's peak windows."""
+    """(f_peak, m_peak) for a 24/7 loop against the model's peak windows.
+
+    Weekday-only schedules matter: 7 peak hours on weekdays is 35 hours a week, not 49,
+    so an always-on loop sits at 35/168 rather than 7/24. Providers publish the day
+    restriction and it is easy to drop, which overstates the peak bill by a third.
+    """
     hours = 0.0
     for window in peak["windows_utc"]:
         start, end = window.split("-")
         h0 = int(start.split(":")[0]) + int(start.split(":")[1]) / 60.0
         h1 = int(end.split(":")[0]) + int(end.split(":")[1]) / 60.0
         hours += h1 - h0
-    return peak_fraction(hours), float(peak["multiplier"])
+    days = float(peak.get("days_per_week", 7))
+    return peak_fraction(hours * days / 7.0), float(peak["multiplier"])
 
 
 def solve_api_costs(today: date | None = None) -> list[ApiCostRow]:

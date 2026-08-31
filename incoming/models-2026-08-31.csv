@@ -1,0 +1,95 @@
+id,vendor,tier,input_per_mtok,cached_input_per_mtok,output_per_mtok,context_window,open_weights,source,confidence,notes
+claude-opus-5,Anthropic,frontier,5,0.50,25,1000000,false,https://platform.claude.com/docs/en/about-claude/pricing,CONFIRMED,Cached figure is the read rate. Cache writes cost 6.25 at 5min or 10 at 1h.
+claude-fable-5,Anthropic,frontier,10,1,50,1000000,false,https://platform.claude.com/docs/en/about-claude/pricing,CONFIRMED,
+claude-opus-4-8,Anthropic,frontier,5,0.50,25,1000000,false,https://platform.claude.com/docs/en/about-claude/pricing,CONFIRMED,
+claude-opus-4-7,Anthropic,frontier,5,0.50,25,1000000,false,https://platform.claude.com/docs/en/about-claude/pricing,CONFIRMED,
+claude-opus-4-6,Anthropic,frontier,5,0.50,25,1000000,false,https://platform.claude.com/docs/en/about-claude/pricing,CONFIRMED,
+claude-opus-4-5,Anthropic,frontier,5,0.50,25,200000,false,https://platform.claude.com/docs/en/about-claude/pricing,CONFIRMED,Legacy tier. Retirement not sooner than 2026-11-24.
+claude-sonnet-5,Anthropic,midrange,2,0.20,10,1000000,false,https://platform.claude.com/docs/en/about-claude/pricing,CONFIRMED,A planned 2026-09-01 rise to 3/15 was cancelled so this is now permanent.
+claude-sonnet-4-6,Anthropic,midrange,3,0.30,15,1000000,false,https://platform.claude.com/docs/en/about-claude/pricing,CONFIRMED,
+claude-haiku-4-5,Anthropic,volume,1,0.10,5,200000,false,https://platform.claude.com/docs/en/about-claude/pricing,CONFIRMED,Retirement not sooner than 2026-10-15.
+gpt-5.6-sol,OpenAI,frontier,4,0.40,20,1050000,false,https://developers.openai.com/api/docs/pricing,CONFIRMED,Standard context tier. Long-context tier is 8/0.80/30. Live price reflects a promo guaranteed through at least 2026-11-21.
+gpt-5.6-terra,OpenAI,frontier,2,0.20,12,1050000,false,https://developers.openai.com/api/docs/pricing,CONFIRMED,Standard context tier. Long-context is 4/0.40/18.
+gpt-5.6-luna,OpenAI,volume,0.20,0.02,1.20,1050000,false,https://developers.openai.com/api/docs/pricing,CONFIRMED,Standard context tier. Long-context is 0.40/0.04/1.80.
+gpt-5.5,OpenAI,frontier,5,0.50,30,,false,https://developers.openai.com/api/docs/pricing,CONFIRMED,
+gpt-5.5-pro,OpenAI,frontier,30,,180,,false,https://developers.openai.com/api/docs/pricing,CONFIRMED,No cache tier offered.
+gpt-5.4,OpenAI,frontier,2.50,0.25,15,,false,https://developers.openai.com/api/docs/pricing,CONFIRMED,
+gpt-5.4-mini,OpenAI,midrange,0.75,0.075,4.50,,false,https://developers.openai.com/api/docs/pricing,CONFIRMED,
+gpt-5.4-nano,OpenAI,volume,0.20,0.02,1.25,,false,https://developers.openai.com/api/docs/pricing,CONFIRMED,
+gpt-5.3-codex,OpenAI,midrange,1.75,0.175,14,,false,https://developers.openai.com/api/docs/pricing,CONFIRMED,
+gpt-5.2,OpenAI,midrange,1.75,0.175,14,400000,false,https://developers.openai.com/api/docs/pricing,CONFIRMED,
+gpt-5.1,OpenAI,midrange,1.25,0.125,10,,false,https://developers.openai.com/api/docs/pricing,CONFIRMED,
+gpt-5,OpenAI,midrange,1.25,0.125,10,,false,https://developers.openai.com/api/docs/pricing,CONFIRMED,Dated snapshot retires 2026-12-11.
+gpt-5-mini,OpenAI,volume,0.25,0.025,2,,false,https://developers.openai.com/api/docs/pricing,CONFIRMED,Retires 2026-12-11.
+gpt-5-nano,OpenAI,volume,0.05,0.005,0.40,,false,https://developers.openai.com/api/docs/pricing,CONFIRMED,Retires 2026-12-11.
+gpt-5-pro,OpenAI,frontier,15,,120,,false,https://developers.openai.com/api/docs/pricing,CONFIRMED,
+gpt-4.1,OpenAI,midrange,2,0.50,8,1047576,false,https://developers.openai.com/api/docs/pricing,CONFIRMED,
+gpt-4.1-mini,OpenAI,volume,0.40,0.10,1.60,1047576,false,https://developers.openai.com/api/docs/pricing,CONFIRMED,
+gpt-4.1-nano,OpenAI,volume,0.10,0.025,0.40,1047576,false,https://developers.openai.com/api/docs/pricing,CONFIRMED,
+gpt-4o,OpenAI,midrange,2.50,1.25,10,,false,https://developers.openai.com/api/docs/pricing,CONFIRMED,
+gpt-4o-mini,OpenAI,volume,0.15,0.075,0.60,128000,false,https://developers.openai.com/api/docs/pricing,CONFIRMED,
+o3,OpenAI,midrange,2,0.50,8,200000,false,https://developers.openai.com/api/docs/pricing,CONFIRMED,Preview snapshots retire 2026-12-11.
+o3-pro,OpenAI,frontier,20,,80,200000,false,https://developers.openai.com/api/docs/pricing,CONFIRMED,
+o4-mini,OpenAI,volume,1.10,0.275,4.40,200000,false,https://developers.openai.com/api/docs/pricing,CONFIRMED,Retires 2026-10-23.
+gemini-2.5-pro,Google,frontier,1.25,0.125,10,1048576,false,https://ai.google.dev/gemini-api/docs/pricing,CONFIRMED,Prices are the sub-200K tier. Above 200K it is 2.50/0.25/15. Cache storage bills 4.50 per Mtok-hour separately.
+gemini-2.5-flash,Google,volume,0.30,0.03,2.50,1048576,false,https://ai.google.dev/gemini-api/docs/pricing,CONFIRMED,Text/image/video rate. Audio input is 1.00. Cache storage 1.00 per Mtok-hour.
+gemini-2.5-flash-lite,Google,volume,0.10,0.01,0.40,,false,https://ai.google.dev/gemini-api/docs/pricing,CONFIRMED,Text/image/video rate. Audio input is 0.30.
+gemini-3.7-flash,Google,volume,0.75,0.075,3.75,1000000,false,https://ai.google.dev/gemini-api/docs/pricing,EXPIRES,Promotional through 2026-12-31. Rises to 1.50/0.15/7.50 on 2027-01-01.
+gemini-3.6-flash,Google,volume,0.75,0.075,3.75,,false,https://ai.google.dev/gemini-api/docs/pricing,EXPIRES,Same 2027-01-01 step as 3.7.
+gemini-3.5-flash,Google,volume,1.50,0.15,9,,false,https://ai.google.dev/gemini-api/docs/pricing,CONFIRMED,
+gemini-3.5-flash-lite,Google,volume,0.30,0.03,2.50,,false,https://ai.google.dev/gemini-api/docs/pricing,CONFIRMED,
+gemini-3.1-flash-lite,Google,volume,0.25,0.025,1.50,,false,https://ai.google.dev/gemini-api/docs/pricing,CONFIRMED,Text/image/video rate. Audio input is 0.50.
+gemini-3.1-pro-preview,Google,frontier,2,0.20,12,,false,https://ai.google.dev/gemini-api/docs/pricing,CONFIRMED,Sub-200K tier. Preview status.
+gemini-3-flash-preview,Google,volume,0.50,0.05,3,,false,https://ai.google.dev/gemini-api/docs/pricing,CONFIRMED,Preview status.
+grok-4.6,xAI,frontier,2,0.50,6,500000,false,https://docs.x.ai/docs/models,CONFIRMED,Sub-200K tier. Above 200K doubles to 4/1.00/12.
+grok-4.5,xAI,frontier,2,0.30,6,500000,false,https://docs.x.ai/docs/models,CONFIRMED,Sub-200K tier.
+grok-4.3,xAI,midrange,1.25,0.20,2.50,1000000,false,https://docs.x.ai/docs/models,CONFIRMED,Sub-200K tier.
+grok-build-0.1,xAI,midrange,1,0.20,2,256000,false,https://docs.x.ai/docs/models,CONFIRMED,Coding focused. Sub-200K tier.
+deepseek-v4-pro,DeepSeek,midrange,0.66,0.022,1.98,1000000,true,https://api-docs.deepseek.com/quick_start/pricing,CONFIRMED,Off-peak rates. MIT licensed. 384K max output.
+deepseek-v4-flash,DeepSeek,volume,0.22,0.007,0.66,1000000,true,https://api-docs.deepseek.com/quick_start/pricing,CONFIRMED,Off-peak rates. MIT licensed.
+glm-5.3,Zhipu,frontier,1.40,0.26,4.40,1000000,true,https://docs.z.ai/guides/overview/pricing,CONFIRMED,One report claims this is coding-plan-only but the official docs table lists a per-token price.
+glm-5.2,Zhipu,frontier,1.40,0.26,4.40,1000000,true,https://docs.z.ai/guides/overview/pricing,CONFIRMED,
+glm-5.1,Zhipu,frontier,1.40,,4.40,200000,true,https://docs.z.ai/guides/overview/pricing,CONFIRMED,A conflicting third-party figure of 0.91/2.86 was checked and rejected against official docs.
+glm-5,Zhipu,frontier,1,0.20,3.20,200000,true,https://docs.z.ai/guides/overview/pricing,CONFIRMED,
+glm-4.7,Zhipu,midrange,0.60,0.11,2.20,200000,true,https://docs.z.ai/guides/overview/pricing,CONFIRMED,
+glm-4.7-flashx,Zhipu,volume,0.07,,0.40,,true,https://docs.z.ai/guides/overview/pricing,CONFIRMED,
+glm-4.6,Zhipu,midrange,0.60,0.11,2.20,200000,true,https://docs.z.ai/guides/overview/pricing,CONFIRMED,
+glm-4.5,Zhipu,midrange,0.60,0.11,2.20,128000,true,https://docs.z.ai/guides/overview/pricing,CONFIRMED,
+glm-4.5-air,Zhipu,volume,0.20,0.03,1.10,,true,https://docs.z.ai/guides/overview/pricing,CONFIRMED,
+kimi-k2.7-code,Moonshot,midrange,0.95,0.19,4,262144,true,https://platform.kimi.ai/docs/pricing/chat-k27-code,CONFIRMED,
+kimi-k2.6,Moonshot,midrange,0.95,0.16,4,262144,true,https://platform.kimi.ai/docs/pricing/chat-k26,CONFIRMED,
+qwen3.8-max,Alibaba,frontier,2,,6,1000000,false,https://www.alibabacloud.com/help/en/model-studio/model-pricing,CONFIRMED,Cache discount is a formula around 10 percent of input not a flat rate.
+qwen3.7-max,Alibaba,frontier,2.50,,7.50,1000000,false,https://www.alibabacloud.com/help/en/model-studio/model-pricing,VOLATILE,A limited-time 50 percent discount is active with no stated expiry and it is unclear whether the listed price is pre or post discount.
+qwen-max,Alibaba,frontier,1.60,,6.40,1000000,false,https://www.alibabacloud.com/help/en/model-studio/model-pricing,CONFIRMED,Legacy. Non-thinking only.
+qwen3.6-plus,Alibaba,midrange,0.50,,3,1000000,false,https://www.alibabacloud.com/help/en/model-studio/model-pricing,CONFIRMED,Sub-256K tier. Above that it is 2.00/6.00.
+qwen3.8-flash,Alibaba,volume,0.15,,0.47,1000000,false,https://www.alibabacloud.com/help/en/model-studio/model-pricing,CONFIRMED,
+qwq-plus,Alibaba,midrange,0.80,,2.40,,true,https://www.alibabacloud.com/help/en/model-studio/model-pricing,CONFIRMED,
+qwen3.8-2.4t-a95b,Alibaba,frontier,2,,6,984000,true,https://www.alibabacloud.com/help/en/model-studio/model-pricing,CONFIRMED,2.4T total 95B active parameters. Open weights.
+qwen3.5-397b-a17b,Alibaba,midrange,0.60,,3.60,262000,true,https://www.alibabacloud.com/help/en/model-studio/model-pricing,CONFIRMED,
+mistral-medium-3.5,Mistral,midrange,1.50,,7.50,256000,true,https://mistral.ai/pricing/api/,CONFIRMED,Batch API is 50 percent off.
+mistral-large-3,Mistral,midrange,0.50,,1.50,256000,true,https://mistral.ai/pricing/api/,CONFIRMED,
+mistral-small-4,Mistral,volume,0.15,,0.60,256000,true,https://mistral.ai/pricing/api/,CONFIRMED,
+codestral,Mistral,volume,0.30,,0.90,,false,https://mistral.ai/pricing/api/,CONFIRMED,Commercial license.
+ministral-3b,Mistral,volume,0.10,,0.10,256000,true,https://mistral.ai/pricing/api/,CONFIRMED,
+ministral-8b,Mistral,volume,0.15,,0.15,256000,true,https://mistral.ai/pricing/api/,CONFIRMED,
+ministral-14b,Mistral,volume,0.20,,0.20,256000,true,https://mistral.ai/pricing/api/,CONFIRMED,
+muse-spark-1.2,Meta,midrange,1.25,0.15,4.25,1048576,false,https://ai.developer.meta.com/docs/pricing-rate-limits,CONFIRMED,Meta first-party API no longer serves Llama at all.
+muse-spark-1.2-contributor,Meta,volume,0.10,0.002,0.20,1048576,false,https://ai.developer.meta.com/docs/pricing-rate-limits,CONFIRMED,Permanently discounted in exchange for training-data-sharing consent. Not a time-limited promo.
+gpt-oss-120b-deepinfra,DeepInfra,open-weights-hosted,0.037,,0.17,131072,true,https://deepinfra.com/pricing,VOLATILE,Cheapest host found for this model. Notably below Together Fireworks and Groq.
+gpt-oss-120b-together,Together,open-weights-hosted,0.15,,0.60,,true,https://www.together.ai/pricing,VOLATILE,
+gpt-oss-120b-fireworks,Fireworks,open-weights-hosted,0.15,0.015,0.60,,true,https://docs.fireworks.ai/serverless/pricing,VOLATILE,Standard tier. Priority tier is 0.18/0.72.
+gpt-oss-120b-groq,Groq,open-weights-hosted,0.15,,0.60,131072,true,https://console.groq.com/docs/models,VOLATILE,About 500 tok/s.
+gpt-oss-20b-deepinfra,DeepInfra,open-weights-hosted,0.03,,0.14,131072,true,https://deepinfra.com/pricing,VOLATILE,
+gpt-oss-20b-groq,Groq,open-weights-hosted,0.075,,0.30,131072,true,https://console.groq.com/docs/models,VOLATILE,About 1000 tok/s.
+llama-3.3-70b-deepinfra,DeepInfra,open-weights-hosted,0.10,,0.32,128000,true,https://deepinfra.com/pricing,VOLATILE,Turbo variant.
+llama-4-scout-deepinfra,DeepInfra,open-weights-hosted,0.10,,0.30,320000,true,https://deepinfra.com/pricing,VOLATILE,17B active 16 experts.
+llama-4-maverick-deepinfra,DeepInfra,open-weights-hosted,0.20,,0.80,1024000,true,https://deepinfra.com/pricing,VOLATILE,17B active 128 experts.
+llama-3.1-8b-deepinfra,DeepInfra,open-weights-hosted,0.02,,0.04,128000,true,https://deepinfra.com/pricing,VOLATILE,Cheapest model on the index by blended rate.
+qwen3-coder-480b-deepinfra,DeepInfra,open-weights-hosted,0.30,0.10,1,256000,true,https://deepinfra.com/pricing,VOLATILE,Turbo variant.
+qwen3-235b-a22b-deepinfra,DeepInfra,open-weights-hosted,0.09,,0.55,256000,true,https://deepinfra.com/pricing,VOLATILE,Instruct 2507.
+deepseek-v4-pro-deepinfra,DeepInfra,open-weights-hosted,1.30,0.10,2.60,1024000,true,https://deepinfra.com/pricing,VOLATILE,Cheaper output than DeepSeek first-party peak but more than off-peak.
+deepseek-v4-flash-deepinfra,DeepInfra,open-weights-hosted,0.085,0.017,0.18,1024000,true,https://deepinfra.com/pricing,VOLATILE,Two research passes disagreed slightly on input rate 0.08 vs 0.09. Midpoint recorded.
+deepseek-v4-flash-together,Together,open-weights-hosted,0.14,0.03,0.28,,true,https://www.together.ai/pricing,VOLATILE,
+deepseek-r1-0528-deepinfra,DeepInfra,open-weights-hosted,0.50,0.35,2.15,160000,true,https://deepinfra.com/pricing,VOLATILE,
+qwen3.6-27b-groq,Groq,open-weights-hosted,0.60,,3,131072,true,https://console.groq.com/docs/models,VOLATILE,Preview tier.
+qwen3.8-27b-groq,Groq,open-weights-hosted,0.80,,4,,true,https://console.groq.com/docs/models,VOLATILE,Preview tier.

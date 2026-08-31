@@ -79,9 +79,13 @@ def test_volume_tier_beats_the_best_cache_rate_at_every_ratio():
     rival currently has the best cache rate, not at whoever held that spot when this was
     written."""
     winner = repo_data.volume_tier_pick().id
+    capable = {
+        e["model"] for e in repo_data.aa_index()["entries"]
+        if e["score"] >= repo_data.CAPABLE_SCORE_FLOOR
+    }
     rivals = [
         m for m in repo_data.priced_models()
-        if m.id != winner and m.pricing.cached_input_per_mtok is not None
+        if m.id != winner and m.pricing.cached_input_per_mtok is not None and m.id in capable
     ]
     if not rivals:
         pytest.skip("only one priced model carries a cache rate")
@@ -97,9 +101,13 @@ def test_cache_advantage_is_bounded_by_the_output_gap():
     ref = repo_data.reference_workload()
     models = {m.id: m for m in repo_data.priced_models()}
     winner = models[repo_data.volume_tier_pick().id]
+    capable = {
+        e["model"] for e in repo_data.aa_index()["entries"]
+        if e["score"] >= repo_data.CAPABLE_SCORE_FLOOR
+    }
     rivals = [
         m for m in models.values()
-        if m.id != winner.id and m.pricing.cached_input_per_mtok is not None
+        if m.id != winner.id and m.pricing.cached_input_per_mtok is not None and m.id in capable
     ]
     if not rivals:
         pytest.skip("only one priced model carries a cache rate")

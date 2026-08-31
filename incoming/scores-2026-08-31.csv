@@ -1,0 +1,50 @@
+model,score,cost_per_task_usd,note
+claude-opus-5,63,2.34,max reasoning effort. xhigh scores the same at 1.80.
+claude-fable-5,62,3.14,with fallback
+gpt-5.6-sol,61,0.95,max reasoning effort
+grok-4.6,61,0.94,high reasoning effort
+kimi-k3,60,0.84,max reasoning effort. Best open-weights model on the index.
+glm-5.3,60,0.68,max reasoning effort
+qwen3.8-max,58,0.91,
+qwen3.8-2.4t-a95b,58,0.81,
+claude-opus-4-8,57,,
+glm-5.3-flash,57,0.09,
+muse-spark-1.2,57,0.40,xhigh reasoning effort
+gemini-3.7-flash,56,0.40,high reasoning effort
+grok-4.5,56,0.43,high reasoning effort
+gpt-5.5,56,,
+claude-sonnet-5,55,1.72,max reasoning effort. Non-reasoning mode scores 43 at 0.42.
+deepseek-v4-pro,53,0.27,max reasoning effort
+glm-5.2,53,0.44,max reasoning effort
+gpt-5.4,53,,
+gpt-5.6-luna,52,0.05,max reasoning effort
+deepseek-v4-flash,52,0.11,max reasoning effort
+gemini-3.6-flash,52,0.34,
+gemini-3.1-pro-preview,48,0.33,
+gpt-5.3-codex,46,,xhigh reasoning effort. Approximate.
+kimi-k2.7-code,43,0.22,
+gpt-5.2,43,,
+gemini-3-flash-preview,41,,Listed by AA as Gemini 3 Pro. Mapping to this id is uncertain.
+gpt-5.1,38,,
+gemini-3.5-flash-lite,37,0.10,
+claude-sonnet-4-6,37,,approximate
+gpt-5,35,,high reasoning effort
+qwen3.5-397b-a17b,34,0.36,
+o3-pro,33,,
+o3,31,,
+claude-haiku-4-5,30,0.22,
+mistral-medium-3.5,30,0.41,
+gpt-5-mini,26,,
+gpt-oss-120b,24,0.07,high reasoning effort
+qwen3-max,24,,
+mistral-small-4,20,0.10,
+gpt-5-nano,20,,
+kimi-k2,20,,
+mistral-large-3,16,0.08,
+gpt-oss-20b,15,0.02,high reasoning effort
+llama-4-maverick,14,0.03,
+llama-4-scout,10,0.01,
+llama-3.3-70b,9,,AA flags an unresolved methodology caveat on this score.
+ministral-8b,9,0.18,Listed by AA as Ministral 3 8B.
+llama-3.1-405b,8,,
+ministral-3b,7,0.13,Listed by AA as Ministral 3 3B.

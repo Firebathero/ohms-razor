@@ -8,12 +8,12 @@ The tokens question (what do I use for thinking), solved from `data/` by `python
 
 ```text
 THE TOKENS QUESTION  (thinking)
-  default          glm-5.3-flash: AA 57, $0.045/task, $1,915 for the 10-yr reference workload at list ($958 on promo through 2026-09-09)
-  frontier calls   grok-4.6: AA 60, $0.62/task, the cheapest costed frontier point (13.8x default per task)
+  default          glm-5.3-flash: AA 57, $0.090/task, $1,915 for the 10-yr reference workload at list ($958 on promo through 2026-09-09)
+  frontier calls   claude-opus-5: AA 63, $2.34/task, the cheapest costed frontier point (26.0x default per task)
   local inference  no: the best passing local config runs 4.1x cloud cost at AA 24
   the local box    hosts the agent: orchestration, sandboxes, a small resident triage model
 
-Caveats, solved with the answer: kimi-k3, glm-5.3-max, claude-opus-5 sit at or above the frontier pick's score with no cost per task yet (TODO in data/benchmarks.yaml); the pick re-solves when they are costed. kimi-k3 is the one frontier model with API pricing here and prices the reference workload at $52,542 (27.4x default), which is why the frontier tier is for rare calls, not the loop. Every price is VOLATILE; run scripts/check_staleness.py before trusting. And the harder caveat: 2 candidate sets (CPU candidates for the compute node, hosted models for the token tiers) have never been surveyed for entrants, so these picks are the best of an inherited list, not the best available. Run /refresh-data to re-open them.
+Caveats, solved with the answer: The frontier tier is for rare calls, not the loop: pricing the reference workload against its 26 priced models runs from $12,348 (glm-5, 6x the default) to $756,000 (gpt-5.5-pro, 395x). Every price is VOLATILE; run scripts/check_staleness.py before trusting. And the harder caveat: 1 candidate set (CPU candidates for the compute node) has never been surveyed for entrants, so that pick is the best of an inherited list, not the best available. Run /refresh-data to re-open it.
 ```
 
 ## The reference workload
@@ -32,14 +32,108 @@ over 10 years at 80% cache hit:
 
 | Path | 10-yr cost | AA score | Priced | Confidence |
 |---|---:|---:|---|---|
+| llama-3.1-8b-deepinfra (list) | $252 | n/a | 2026-08-31 | VOLATILE |
+| gpt-oss-20b-deepinfra (list) | $630 | n/a | 2026-08-31 | VOLATILE |
 | gpt-oss-120b-cloud (list) | $724 | 24 | 2026-08-29 | VOLATILE |
+| deepseek-v4-flash-deepinfra (list) | $760 | n/a | 2026-08-31 | VOLATILE |
+| muse-spark-1.2-contributor (list) | $766 | n/a | 2026-08-31 | CONFIRMED |
+| gpt-oss-120b-deepinfra (list) | $769 | n/a | 2026-08-31 | VOLATILE |
+| ministral-3b (list) | $945 | 7.0 | 2026-08-31 | CONFIRMED |
 | glm-5.3-flash (promo) | $958 | 57 | 2026-08-29 | EXPIRES, ends 2026-09-09 |
+| deepseek-v4-flash-together (list) | $1,210 | n/a | 2026-08-31 | VOLATILE |
+| gpt-5-nano (list) | $1,348 | 20.0 | 2026-08-31 | CONFIRMED |
+| ministral-8b (list) | $1,418 | 9.0 | 2026-08-31 | CONFIRMED |
+| gpt-oss-20b-groq (list) | $1,418 | n/a | 2026-08-31 | VOLATILE |
+| gemini-2.5-flash-lite (list) | $1,436 | n/a | 2026-08-31 | CONFIRMED |
+| gpt-4.1-nano (list) | $1,512 | n/a | 2026-08-31 | CONFIRMED |
+| llama-4-scout-deepinfra (list) | $1,575 | n/a | 2026-08-31 | VOLATILE |
+| llama-3.3-70b-deepinfra (list) | $1,638 | n/a | 2026-08-31 | VOLATILE |
+| glm-4.7-flashx (list) | $1,701 | n/a | 2026-08-31 | CONFIRMED |
+| ministral-14b (list) | $1,890 | n/a | 2026-08-31 | CONFIRMED |
 | glm-5.3-flash (list) | $1,915 | 57 | 2026-08-29 | VOLATILE |
+| gpt-oss-120b-fireworks (list) | $2,155 | n/a | 2026-08-31 | VOLATILE |
+| qwen3-235b-a22b-deepinfra (list) | $2,300 | n/a | 2026-08-31 | VOLATILE |
 | deepseek-v4-flash (off-peak only) | $2,391 | 52 | 2026-08-29 | VOLATILE |
-| deepseek-v4-flash (24/7, 29% peak) | $3,089 | 52 | 2026-08-29 | VOLATILE |
+| qwen3.8-flash (list) | $2,426 | n/a | 2026-08-31 | CONFIRMED |
+| gpt-4o-mini (list) | $2,457 | n/a | 2026-08-31 | CONFIRMED |
+| mistral-small-4 (list) | $2,835 | 20.0 | 2026-08-31 | CONFIRMED |
+| gpt-oss-120b-together (list) | $2,835 | n/a | 2026-08-31 | VOLATILE |
+| gpt-oss-120b-groq (list) | $2,835 | n/a | 2026-08-31 | VOLATILE |
+| deepseek-v4-flash (24/7, 21% peak) | $2,890 | 52 | 2026-08-29 | VOLATILE |
+| llama-4-maverick-deepinfra (list) | $3,780 | n/a | 2026-08-31 | VOLATILE |
+| glm-4.5-air (list) | $3,868 | n/a | 2026-08-31 | CONFIRMED |
+| qwen3-coder-480b-deepinfra (list) | $4,032 | n/a | 2026-08-31 | VOLATILE |
+| gpt-5.6-luna (list) | $4,133 | 52.0 | 2026-08-31 | CONFIRMED |
+| gpt-5.4-nano (list) | $4,290 | n/a | 2026-08-31 | CONFIRMED |
+| codestral (list) | $4,725 | n/a | 2026-08-31 | CONFIRMED |
+| gemini-3.1-flash-lite (list) | $5,166 | n/a | 2026-08-31 | CONFIRMED |
+| gpt-4.1-mini (list) | $6,048 | n/a | 2026-08-31 | CONFIRMED |
+| gpt-5-mini (list) | $6,741 | 26.0 | 2026-08-31 | CONFIRMED |
+| deepseek-v4-pro (off-peak only) | $7,179 | 53.0 | 2026-08-31 | CONFIRMED |
+| mistral-large-3 (list) | $7,875 | 16.0 | 2026-08-31 | CONFIRMED |
+| glm-4.7 (list) | $8,240 | n/a | 2026-08-31 | CONFIRMED |
+| glm-4.6 (list) | $8,240 | n/a | 2026-08-31 | CONFIRMED |
+| glm-4.5 (list) | $8,240 | n/a | 2026-08-31 | CONFIRMED |
+| gemini-2.5-flash (list) | $8,404 | n/a | 2026-08-31 | CONFIRMED |
+| gemini-3.5-flash-lite (list) | $8,404 | 37.0 | 2026-08-31 | CONFIRMED |
+| grok-build-0.1 (list) | $8,568 | n/a | 2026-08-31 | CONFIRMED |
+| deepseek-v4-pro (24/7, 21% peak) | $8,675 | 53.0 | 2026-08-31 | CONFIRMED |
+| deepseek-r1-0528-deepinfra (list) | $9,166 | n/a | 2026-08-31 | VOLATILE |
+| gemini-3-flash-preview (list) | $10,332 | 41.0 | 2026-08-31 | CONFIRMED |
+| deepseek-v4-pro-deepinfra (list) | $10,332 | n/a | 2026-08-31 | VOLATILE |
+| grok-4.3 (list) | $10,458 | n/a | 2026-08-31 | CONFIRMED |
+| glm-5 (list) | $12,348 | n/a | 2026-08-31 | CONFIRMED |
+| qwen3.6-plus (list) | $12,600 | n/a | 2026-08-31 | CONFIRMED |
+| qwq-plus (list) | $12,600 | n/a | 2026-08-31 | CONFIRMED |
+| gemini-3.7-flash (list) | $13,136 | 56.0 | 2026-08-31 | EXPIRES |
+| gemini-3.6-flash (list) | $13,136 | 52.0 | 2026-08-31 | EXPIRES |
+| qwen3.6-27b-groq (list) | $13,230 | n/a | 2026-08-31 | VOLATILE |
+| kimi-k2.6 (list) | $14,603 | n/a | 2026-08-31 | CONFIRMED |
+| kimi-k2.7-code (list) | $14,755 | 43.0 | 2026-08-31 | CONFIRMED |
+| qwen3.5-397b-a17b (list) | $15,120 | 34.0 | 2026-08-31 | CONFIRMED |
+| gpt-5.4-mini (list) | $15,498 | n/a | 2026-08-31 | CONFIRMED |
+| muse-spark-1.2 (list) | $15,718 | 57.0 | 2026-08-31 | CONFIRMED |
+| o4-mini (list) | $16,632 | n/a | 2026-08-31 | CONFIRMED |
+| glm-5.3 (list) | $16,934 | 60.0 | 2026-08-31 | CONFIRMED |
+| glm-5.2 (list) | $16,934 | 53.0 | 2026-08-31 | CONFIRMED |
+| claude-haiku-4-5 (list) | $17,514 | 30.0 | 2026-08-31 | CONFIRMED |
+| qwen3.8-27b-groq (list) | $17,640 | n/a | 2026-08-31 | VOLATILE |
+| glm-5.1 (list) | $22,680 | n/a | 2026-08-31 | CONFIRMED |
+| grok-4.5 (list) | $22,932 | 56.0 | 2026-08-31 | CONFIRMED |
+| grok-4.6 (list) | $23,940 | 61 | 2026-08-31 | CONFIRMED |
+| gpt-4.1 (list) | $30,240 | n/a | 2026-08-31 | CONFIRMED |
+| o3 (list) | $30,240 | 31.0 | 2026-08-31 | CONFIRMED |
+| qwen-max (list) | $30,240 | n/a | 2026-08-31 | CONFIRMED |
+| gemini-3.5-flash (list) | $30,996 | n/a | 2026-08-31 | CONFIRMED |
+| qwen3.8-max (list) | $31,500 | 58.0 | 2026-08-31 | CONFIRMED |
+| qwen3.8-2.4t-a95b (list) | $31,500 | 58.0 | 2026-08-31 | CONFIRMED |
+| mistral-medium-3.5 (list) | $33,075 | 30.0 | 2026-08-31 | CONFIRMED |
+| gpt-5.1 (list) | $33,705 | 38.0 | 2026-08-31 | CONFIRMED |
+| gpt-5 (list) | $33,705 | 35.0 | 2026-08-31 | CONFIRMED |
+| gemini-2.5-pro (list) | $33,705 | n/a | 2026-08-31 | CONFIRMED |
+| claude-sonnet-5 (list) | $35,028 | 55.0 | 2026-08-31 | CONFIRMED |
+| qwen3.7-max (list) | $39,375 | n/a | 2026-08-31 | VOLATILE |
+| gpt-4o (list) | $40,950 | n/a | 2026-08-31 | CONFIRMED |
+| gpt-5.6-terra (list) | $41,328 | n/a | 2026-08-31 | CONFIRMED |
+| gemini-3.1-pro-preview (list) | $41,328 | 48.0 | 2026-08-31 | CONFIRMED |
+| gpt-5.3-codex (list) | $47,187 | 46.0 | 2026-08-31 | CONFIRMED |
+| gpt-5.2 (list) | $47,187 | 43.0 | 2026-08-31 | CONFIRMED |
+| gpt-5.4 (list) | $51,660 | 53.0 | 2026-08-31 | CONFIRMED |
 | kimi-k3 (list) | $52,542 | 60 | 2026-08-29 | VOLATILE |
+| claude-sonnet-4-6 (list) | $52,542 | 37.0 | 2026-08-31 | CONFIRMED |
+| gpt-5.6-sol (list) | $70,056 | 61.0 | 2026-08-31 | CONFIRMED |
+| claude-opus-5 (list) | $87,570 | 63 | 2026-08-31 | CONFIRMED |
+| claude-opus-4-8 (list) | $87,570 | 57.0 | 2026-08-31 | CONFIRMED |
+| claude-opus-4-7 (list) | $87,570 | n/a | 2026-08-31 | CONFIRMED |
+| claude-opus-4-6 (list) | $87,570 | n/a | 2026-08-31 | CONFIRMED |
+| claude-opus-4-5 (list) | $87,570 | n/a | 2026-08-31 | CONFIRMED |
+| gpt-5.5 (list) | $103,320 | 56.0 | 2026-08-31 | CONFIRMED |
+| claude-fable-5 (list) | $175,140 | 62.0 | 2026-08-31 | CONFIRMED |
+| o3-pro (list) | $378,000 | 33.0 | 2026-08-31 | CONFIRMED |
+| gpt-5-pro (list) | $472,500 | n/a | 2026-08-31 | CONFIRMED |
+| gpt-5.5-pro (list) | $756,000 | n/a | 2026-08-31 | CONFIRMED |
 
-Scores: AA Intelligence Index v4.1.1 (2026-08-26). Index parity is not task parity.
+Scores: AA Intelligence Index v4.1.1 (2026-08-31). Index parity is not task parity.
 
 ## The cache objection, priced
 
@@ -56,17 +150,61 @@ deepseek-v4-flash has the cheapest cache rate on offer at $0.007/M against glm-5
 
 ## The frontier is a cliff
 
-| Model | AA score | $/task | vs glm-5.3-flash | Pareto |
+| Model | AA score | $/task | vs llama-4-scout | Pareto |
 |---|---:|---:|---:|---|
-| glm-5.3-flash | 57 | $0.045 | 1.0x | on frontier |
-| grok-4.6 | 60 | $0.620 | 13.8x | on frontier |
-| deepseek-v4-flash | 52 | TODO: unverified | | not placeable yet |
-| kimi-k3 | 60 | TODO: unverified | | not placeable yet |
-| glm-5.3-max | 60 | TODO: unverified | | not placeable yet |
-| claude-opus-5 | 63 | TODO: unverified | | not placeable yet |
-| gpt-oss-120b | 24 | TODO: unverified | | not placeable yet |
+| llama-4-scout | 10 | $0.010 | 1.0x | on frontier |
+| gpt-oss-20b | 15 | $0.020 | 2.0x | on frontier |
+| llama-4-maverick | 14 | $0.030 | 3.0x | dominated |
+| gpt-5.6-luna | 52 | $0.050 | 5.0x | on frontier |
+| gpt-oss-120b | 24 | $0.070 | 7.0x | dominated |
+| mistral-large-3 | 16 | $0.080 | 8.0x | dominated |
+| glm-5.3-flash | 57 | $0.090 | 9.0x | on frontier |
+| gemini-3.5-flash-lite | 37 | $0.100 | 10.0x | dominated |
+| mistral-small-4 | 20 | $0.100 | 10.0x | dominated |
+| deepseek-v4-flash | 52 | $0.110 | 11.0x | dominated |
+| ministral-3b | 7 | $0.130 | 13.0x | dominated |
+| ministral-8b | 9 | $0.180 | 18.0x | dominated |
+| kimi-k2.7-code | 43 | $0.220 | 22.0x | dominated |
+| claude-haiku-4-5 | 30 | $0.220 | 22.0x | dominated |
+| deepseek-v4-pro | 53 | $0.270 | 27.0x | dominated |
+| gemini-3.1-pro-preview | 48 | $0.330 | 33.0x | dominated |
+| gemini-3.6-flash | 52 | $0.340 | 34.0x | dominated |
+| qwen3.5-397b-a17b | 34 | $0.360 | 36.0x | dominated |
+| muse-spark-1.2 | 57 | $0.400 | 40.0x | dominated |
+| gemini-3.7-flash | 56 | $0.400 | 40.0x | dominated |
+| mistral-medium-3.5 | 30 | $0.410 | 41.0x | dominated |
+| grok-4.5 | 56 | $0.430 | 43.0x | dominated |
+| glm-5.2 | 53 | $0.440 | 44.0x | dominated |
+| glm-5.3 | 60 | $0.680 | 68.0x | on frontier |
+| qwen3.8-2.4t-a95b | 58 | $0.810 | 81.0x | dominated |
+| kimi-k3 | 60 | $0.840 | 84.0x | dominated |
+| qwen3.8-max | 58 | $0.910 | 91.0x | dominated |
+| grok-4.6 | 61 | $0.940 | 94.0x | on frontier |
+| gpt-5.6-sol | 61 | $0.950 | 95.0x | dominated |
+| claude-sonnet-5 | 55 | $1.720 | 172.0x | dominated |
+| claude-opus-5 | 63 | $2.340 | 234.0x | on frontier |
+| claude-fable-5 | 62 | $3.140 | 314.0x | dominated |
+| claude-opus-4-8 | 57.0 | TODO: unverified | | not placeable yet |
+| gpt-5.5 | 56.0 | TODO: unverified | | not placeable yet |
+| gpt-5.4 | 53.0 | TODO: unverified | | not placeable yet |
+| gpt-5.3-codex | 46.0 | TODO: unverified | | not placeable yet |
+| gpt-5.2 | 43.0 | TODO: unverified | | not placeable yet |
+| gemini-3-flash-preview | 41.0 | TODO: unverified | | not placeable yet |
+| gpt-5.1 | 38.0 | TODO: unverified | | not placeable yet |
+| claude-sonnet-4-6 | 37.0 | TODO: unverified | | not placeable yet |
+| gpt-5 | 35.0 | TODO: unverified | | not placeable yet |
+| o3-pro | 33.0 | TODO: unverified | | not placeable yet |
+| o3 | 31.0 | TODO: unverified | | not placeable yet |
+| gpt-5-mini | 26.0 | TODO: unverified | | not placeable yet |
+| qwen3-max | 24.0 | TODO: unverified | | not placeable yet |
+| gpt-5-nano | 20.0 | TODO: unverified | | not placeable yet |
+| kimi-k2 | 20.0 | TODO: unverified | | not placeable yet |
+| llama-3.3-70b | 9.0 | TODO: unverified | | not placeable yet |
+| llama-3.1-405b | 8.0 | TODO: unverified | | not placeable yet |
 
-Baseline is glm-5.3-flash, the cheapest costed entry, solved rather than named. Models the handoff placed between the tiers, scoring at or below the volume tier while costing a multiple of it (individual figures pending re-pull): gpt-5.6-luna, deepseek-v4-pro, glm-5.2, qwen3.8-27b, gemini-3.7-flash, grok-4.5, muse-spark.
+Baseline is llama-4-scout, the cheapest costed entry, solved rather than named. 7 of 32 costed models are Pareto-optimal: llama-4-scout (AA 10, $0.01), gpt-oss-20b (AA 15, $0.02), gpt-5.6-luna (AA 52, $0.05), glm-5.3-flash (AA 57, $0.09), glm-5.3 (AA 60, $0.68), grok-4.6 (AA 61, $0.94), claude-opus-5 (AA 63, $2.34).
+
+Read as steps up the curve: 5 pts for 2.0x; then 37 pts for 2.5x; then 5 pts for 1.8x; then 3 pts for 7.6x; then 1 pts for 1.4x; then 2 pts for 2.5x. Capability is bought in increments here, not in one jump, which is what a curve means and a cliff does not.
 
 ![Capability vs cost Pareto frontier](../analysis/assets/pareto_frontier.png)
 
@@ -145,7 +283,7 @@ The Model 2 column is the bandwidth-bound upper bound; measured figures below th
 | Local vs cloud | 4.1x |
 | Break-even utilization | 4.1 (above 1.0 = impossible) |
 
-Capability context: gpt-oss-120b scores 24 on the index. The current volume tier (glm-5.3-flash) scores 57 at $0.045/task. The local option costs more per token and delivers 42% of the capability.
+Capability context: gpt-oss-120b scores 24 on the index. The current volume tier (glm-5.3-flash) scores 57 at $0.090/task. The local option costs more per token and delivers 42% of the capability.
 
 ## Batching, modelled
 
@@ -168,19 +306,19 @@ First-order model (uniform independent routing), measured bandwidth on GMKtec EV
 | Candidate set | In catalog | Fully placeable | Last surveyed | Status |
 |---|---:|---|---|---|
 | CPU candidates for the compute node | 4 | 4 priced, 4 screenable | never | **never surveyed** |
-| hosted models for the token tiers | 4 | see report | never | **never surveyed** |
+| hosted models for the token tiers | 97 | see report | 2026-08-31 | current |
 | local machines for on-box inference | 37 | see report | 2026-08-31 | current |
-| the capability axis itself | 7 | 2 costed | 2026-08-26 | current |
+| the capability axis itself | 49 | 32 costed | 2026-08-31 | current |
 
-2 of 4 candidate sets were inherited from the original research and have never been re-opened. Every ranking drawn from them is "best of these", not "best available". Run `python scripts/refresh_plan.py` for the survey scope and where to look, or `/refresh-data` to have an agent do it.
+1 of 4 candidate sets were inherited from the original research and have never been re-opened. Every ranking drawn from them is "best of these", not "best available". Run `python scripts/refresh_plan.py` for the survey scope and where to look, or `/refresh-data` to have an agent do it.
 
 ## How much to trust this today
 
 | Category | Figures | Oldest | Window | Status |
 |---|---:|---|---|---|
-| benchmarks | 1 | 2026-08-26 | 60d | fresh |
+| benchmarks | 1 | 2026-08-31 | 60d | fresh |
 | dram | 1 | 2026-08-14 | 14d | **1 flagged** |
 | hardware_pricing | 43 | 2026-06-15 | 30d | **2 flagged** |
-| model_pricing | 5 | 2026-08-29 | 30d | fresh |
+| model_pricing | 98 | 2026-08-29 | 30d | fresh |
 
 SPECrate submissions never expire and are not policed.

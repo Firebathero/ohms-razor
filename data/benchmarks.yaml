@@ -1,69 +1,223 @@
-# Capability scores. Index parity is not task parity: two models with equal scores are not
-# interchangeable for a specific job (handoff weakness 6). Freshness window: 60 days.
-
-# WHAT THIS LIST IS SUPPOSED TO COVER. Also worth re-asking: whether this index is still
-# the right capability axis at all. A benchmark that saturates or gets gamed stops
-# separating candidates, and the whole tokens answer rests on this one number.
 survey:
-  question: >-
-    Which models' capability scores do we need in order to place every priced candidate,
-    and is this index still the right axis to rank capability on?
+  question: Which models' capability scores do we need in order to place every priced candidate, and is
+    this index still the right axis to rank capability on?
   inclusion_criteria:
-    - every model in data/model_pricing.yaml needs a score, or it cannot be placed
-    - every model scoring at or above the current volume-tier pick needs a cost per task
+  - every model in data/model_pricing.yaml needs a score, or it cannot be placed
+  - every model scoring at or above the current volume-tier pick needs a cost per task
   where_to_look:
-    - the index's own leaderboard, pinned to a version, at each refresh
-    - the index's methodology notes for scoring changes that would break comparability
-      with previously recorded scores
+  - the index's own leaderboard, pinned to a version, at each refresh
+  - the index's methodology notes for scoring changes that would break comparability with previously recorded
+    scores
   alternatives_to_reconsider:
-    - whether a task-specific eval would rank the volume tier differently for agent loops,
-      which is the actual workload this repo models
-  last_surveyed: 2026-08-26
+  - whether a task-specific eval would rank the volume tier differently for agent loops, which is the
+    actual workload this repo models
+  last_surveyed: &id001 2026-08-31
   survey_interval_days: 60
-  confidence: PARTIAL
-  note: >-
-    The scores were pulled at the version and date recorded below, so the entries here are
-    current as of then. What has never been asked is the second question: whether this
-    index is the right axis. It is used as the sole capability gate in the razor, so if it
-    stops discriminating, every token answer silently degrades.
-  considered_and_excluded: []
-
+  confidence: CURRENT
+  note: 'Surveyed 2026-08-31 against the leaderboard directly. 178 models are ranked; the 50 that could
+    plausibly matter here are recorded. Index v4.1.1 (patch 2026-08-06) changed the grader models, so
+    scores are NOT comparable across index versions: a prior version scored Grok 4 at 73, which is meaningless
+    on this scale. The second question, whether this index is the right capability axis for agent loops,
+    remains unanswered.'
+  considered_and_excluded:
+  - candidate: Provider-specific entries for open-weights models
+    reason: the index scores the underlying model, not the host; hosts differ on price only
+  - candidate: Legacy dated snapshots below Sonnet 4.6 and most o-series tiers
+    reason: not on the leaderboard, and superseded by cheaper current tiers
 aa_intelligence_index:
   version: v4.1.1
-  date: 2026-08-26
+  date: *id001
   confidence: VOLATILE
   source: sources#aa-intelligence-index
   entries:
-    - model: glm-5.3-flash
-      score: 57
-      cost_per_task_usd: 0.045
-    - model: deepseek-v4-flash
-      score: 52
-      cost_per_task_usd: null   # TODO: unverified
-    - model: kimi-k3
-      score: 60
-      cost_per_task_usd: null   # TODO: unverified
-    - model: glm-5.3-max
-      score: 60
-      cost_per_task_usd: null   # TODO: unverified
-    - model: grok-4.6
-      score: 60
-      cost_per_task_usd: 0.62
-    - model: claude-opus-5
-      score: 63
-      cost_per_task_usd: null   # TODO: unverified
-    - model: gpt-oss-120b
-      score: 24
-      cost_per_task_usd: null   # TODO: unverified
-
-  # Models the handoff places between the two tiers: each scores at or below 57 while
-  # costing 2x to 14x GLM-5.3-Flash per task. Individual scores and costs were not carried
-  # in the handoff. TODO: unverified; re-pull before plotting them.
+  - model: glm-5.3-flash
+    score: 57
+    cost_per_task_usd: 0.09
+    history:
+    - field: cost_per_task_usd
+      value: 0.045
+      superseded: *id001
+      note: handoff figure of 0.045 was half the published value. Re-read from the leaderboard at the
+        same index version (v4.1.1); this doubles the volume tier's cost per task.
+  - model: deepseek-v4-flash
+    score: 52
+    cost_per_task_usd: 0.11
+  - model: kimi-k3
+    score: 60
+    cost_per_task_usd: 0.84
+  - model: grok-4.6
+    score: 61
+    cost_per_task_usd: 0.94
+    history:
+    - field: score
+      value: 60
+      superseded: *id001
+      note: handoff figure. Re-read from the leaderboard at the same index version (v4.1.1).
+    - field: cost_per_task_usd
+      value: 0.62
+      superseded: *id001
+      note: handoff figure. Re-read from the leaderboard at the same index version (v4.1.1).
+  - model: claude-opus-5
+    score: 63
+    cost_per_task_usd: 2.34
+  - model: gpt-oss-120b
+    score: 24
+    cost_per_task_usd: 0.07
+  - model: claude-fable-5
+    score: 62.0
+    cost_per_task_usd: 3.14
+    note: with fallback
+  - model: gpt-5.6-sol
+    score: 61.0
+    cost_per_task_usd: 0.95
+    note: max reasoning effort
+  - model: glm-5.3
+    score: 60.0
+    cost_per_task_usd: 0.68
+    note: max reasoning effort
+  - model: qwen3.8-max
+    score: 58.0
+    cost_per_task_usd: 0.91
+  - model: qwen3.8-2.4t-a95b
+    score: 58.0
+    cost_per_task_usd: 0.81
+  - model: claude-opus-4-8
+    score: 57.0
+    cost_per_task_usd: null
+  - model: muse-spark-1.2
+    score: 57.0
+    cost_per_task_usd: 0.4
+    note: xhigh reasoning effort
+  - model: gemini-3.7-flash
+    score: 56.0
+    cost_per_task_usd: 0.4
+    note: high reasoning effort
+  - model: grok-4.5
+    score: 56.0
+    cost_per_task_usd: 0.43
+    note: high reasoning effort
+  - model: gpt-5.5
+    score: 56.0
+    cost_per_task_usd: null
+  - model: claude-sonnet-5
+    score: 55.0
+    cost_per_task_usd: 1.72
+    note: max reasoning effort. Non-reasoning mode scores 43 at 0.42.
+  - model: deepseek-v4-pro
+    score: 53.0
+    cost_per_task_usd: 0.27
+    note: max reasoning effort
+  - model: glm-5.2
+    score: 53.0
+    cost_per_task_usd: 0.44
+    note: max reasoning effort
+  - model: gpt-5.4
+    score: 53.0
+    cost_per_task_usd: null
+  - model: gpt-5.6-luna
+    score: 52.0
+    cost_per_task_usd: 0.05
+    note: max reasoning effort
+  - model: gemini-3.6-flash
+    score: 52.0
+    cost_per_task_usd: 0.34
+  - model: gemini-3.1-pro-preview
+    score: 48.0
+    cost_per_task_usd: 0.33
+  - model: gpt-5.3-codex
+    score: 46.0
+    cost_per_task_usd: null
+    note: xhigh reasoning effort. Approximate.
+  - model: kimi-k2.7-code
+    score: 43.0
+    cost_per_task_usd: 0.22
+  - model: gpt-5.2
+    score: 43.0
+    cost_per_task_usd: null
+  - model: gemini-3-flash-preview
+    score: 41.0
+    cost_per_task_usd: null
+    note: Listed by AA as Gemini 3 Pro. Mapping to this id is uncertain.
+  - model: gpt-5.1
+    score: 38.0
+    cost_per_task_usd: null
+  - model: gemini-3.5-flash-lite
+    score: 37.0
+    cost_per_task_usd: 0.1
+  - model: claude-sonnet-4-6
+    score: 37.0
+    cost_per_task_usd: null
+    note: approximate
+  - model: gpt-5
+    score: 35.0
+    cost_per_task_usd: null
+    note: high reasoning effort
+  - model: qwen3.5-397b-a17b
+    score: 34.0
+    cost_per_task_usd: 0.36
+  - model: o3-pro
+    score: 33.0
+    cost_per_task_usd: null
+  - model: o3
+    score: 31.0
+    cost_per_task_usd: null
+  - model: claude-haiku-4-5
+    score: 30.0
+    cost_per_task_usd: 0.22
+  - model: mistral-medium-3.5
+    score: 30.0
+    cost_per_task_usd: 0.41
+  - model: gpt-5-mini
+    score: 26.0
+    cost_per_task_usd: null
+  - model: qwen3-max
+    score: 24.0
+    cost_per_task_usd: null
+  - model: mistral-small-4
+    score: 20.0
+    cost_per_task_usd: 0.1
+  - model: gpt-5-nano
+    score: 20.0
+    cost_per_task_usd: null
+  - model: kimi-k2
+    score: 20.0
+    cost_per_task_usd: null
+  - model: mistral-large-3
+    score: 16.0
+    cost_per_task_usd: 0.08
+  - model: gpt-oss-20b
+    score: 15.0
+    cost_per_task_usd: 0.02
+    note: high reasoning effort
+  - model: llama-4-maverick
+    score: 14.0
+    cost_per_task_usd: 0.03
+  - model: llama-4-scout
+    score: 10.0
+    cost_per_task_usd: 0.01
+  - model: llama-3.3-70b
+    score: 9.0
+    cost_per_task_usd: null
+    note: AA flags an unresolved methodology caveat on this score.
+  - model: ministral-8b
+    score: 9.0
+    cost_per_task_usd: 0.18
+    note: Listed by AA as Ministral 3 8B.
+  - model: llama-3.1-405b
+    score: 8.0
+    cost_per_task_usd: null
+  - model: ministral-3b
+    score: 7.0
+    cost_per_task_usd: 0.13
+    note: Listed by AA as Ministral 3 3B.
   midrange_noted:
-    - gpt-5.6-luna
-    - deepseek-v4-pro
-    - glm-5.2
-    - qwen3.8-27b
-    - gemini-3.7-flash
-    - grok-4.5
-    - muse-spark
+  - gpt-5.6-luna
+  - deepseek-v4-pro
+  - glm-5.2
+  - qwen3.8-27b
+  - gemini-3.7-flash
+  - grok-4.5
+  - muse-spark
+  notes: Cheapest model on the index by blended rate is llama-3.1-8b at $0.02/M. 98 of 178 scored models
+    are open-weight. Scores carry a reasoning-effort setting where the leaderboard publishes one; a model
+    can appear at several efforts with different costs.

@@ -1,104 +1,1234 @@
-# API list pricing, USD per million tokens. Peak/off-peak schedules and promos carried
-# explicitly. When a price moves, push the old value into history rather than deleting it.
-# Freshness window: 30 days (see CONTRIBUTING.md).
-
-# WHAT THIS LIST IS SUPPOSED TO COVER. This is the fastest-moving universe in the repo:
-# models launch, get deprecated, and reprice on no schedule. A closed list here is how the
-# tool ends up confidently recommending last quarter's winner.
 survey:
-  question: >-
-    Which hosted models could plausibly win the volume tier (cheapest path that clears a
-    capability bar) or the frontier tier (top of the index, called rarely)?
+  question: Which hosted models could plausibly win the volume tier (cheapest path that clears a capability
+    bar) or the frontier tier (top of the index, called rarely)?
   inclusion_criteria:
-    - publicly available API with published per-token pricing
-    - scored on the capability index used in data/benchmarks.yaml, or scoreable
-    - no minimum-commit or enterprise-only pricing that a solo operator cannot get
+  - publicly available API with published per-token pricing
+  - scored on the capability index used in data/benchmarks.yaml, or scoreable
+  - no minimum-commit or enterprise-only pricing that a solo operator cannot get
   out_of_scope:
-    - models without public pricing (cannot price the workload against them)
-    - subscription seats rather than metered tokens (different unit; not comparable)
+  - models without public pricing (cannot price the workload against them)
+  - subscription seats rather than metered tokens (different unit; not comparable)
   where_to_look:
-    - the capability index leaderboard, every entry above the current volume-tier score
-    - vendor pricing pages for launches since the last survey
-    - open-weights models newly available from a hosted provider, priced per token
-  last_surveyed: null
+  - the capability index leaderboard, every entry above the current volume-tier score
+  - vendor pricing pages for launches since the last survey
+  - open-weights models newly available from a hosted provider, priced per token
+  last_surveyed: &id001 2026-08-31
   survey_interval_days: 30
-  confidence: TODO
-  note: >-
-    NEVER SURVEYED. The four priced models below came from the research handoff. The index
-    in data/benchmarks.yaml already names entries with no pricing here (a known gap the
-    refresh plan reports), but nobody has asked the broader question of which models exist
-    now that are not on either list. Given how fast this tier moves, treat a survey older
-    than the interval as the most likely source of a wrong answer.
-  considered_and_excluded: []   # nothing recorded; see note
-
+  confidence: CURRENT
+  note: Surveyed 2026-08-31 by fetching vendor pricing pages directly across Anthropic, OpenAI, Google,
+    xAI, DeepSeek, Zhipu, Moonshot, Alibaba, Mistral, Meta, and six open-weights hosts. Grew the set from
+    4 to 97. Tiered context pricing is recorded at the base tier with the higher tier in the notes; the
+    models here are the ones a solo operator can actually buy.
+  considered_and_excluded:
+  - candidate: claude-mythos-5
+    reason: access-gated to approved organizations, so not purchasable by a solo operator at any price;
+      it would otherwise contaminate a cheapest-model answer
+  - candidate: CoreWeave inference
+    reason: sells GPU-instance-hours, not per-token; no self-serve token price exists
+  - candidate: Cerebras gpt-oss-120b
+    reason: two research passes reported $0.35/$0.75 but three direct fetches of the vendor's own pricing
+      pages found no public per-token rate at all. Recorded as unresolved rather than picking a side
+  - candidate: Groq Llama tiers
+    reason: moved off self-serve to enterprise contact-sales, so no public per-token price
+  - candidate: Retired Anthropic and OpenAI snapshots
+    reason: no longer on the direct API, or retiring inside the hold period
 models:
-  - id: glm-5.3-flash
-    vendor: Zhipu
-    tier: volume
-    input_per_mtok: 0.15
-    cached_input_per_mtok: 0.03
-    output_per_mtok: 0.50
-    date: 2026-08-29
-    confidence: VOLATILE
-    source: sources#glm-53-flash-pricing
-    promo:
-      description: 50 percent off all three rates
-      multiplier: 0.5
-      expires: 2026-09-09
-      expires_note: ends 24:00 UTC+8
-      confidence: EXPIRES
-    peak_pricing: null
-
-  - id: deepseek-v4-flash
-    vendor: DeepSeek
-    tier: volume
-    # Off-peak rates. Peak multiplies every component by the multiplier below.
-    input_per_mtok: 0.22
-    cached_input_per_mtok: 0.007
-    output_per_mtok: 0.66
-    date: 2026-08-29
-    confidence: VOLATILE
-    source: sources#deepseek-v4-flash-pricing
-    peak_pricing:
-      multiplier: 2.0
-      windows_utc: ["01:00-04:00", "06:00-10:00"]
-      confidence: VOLATILE
-      note: >-
-        7 of 24 hours are peak. A 24/7 loop with no scheduling has f_peak = 7/24. The
-        handoff's worked example rounded that to 0.29.
-    history:
-      - field: output_per_mtok
-        value: 0.28
-        superseded: 2026-08-16
-        confidence: CONFIRMED
-        note: >-
-          Output moved from 0.28 flat to 0.66 off-peak / 1.32 peak in one change on
-          2026-08-16, a 371 percent move at peak. Treat this vendor's pricing as unstable.
-
-  - id: kimi-k3
-    vendor: Moonshot
-    tier: frontier
-    input_per_mtok: 3.00
-    cached_input_per_mtok: 0.30
-    output_per_mtok: 15.00
-    total_params_b: 2800
-    date: 2026-08-29
-    confidence: VOLATILE
-    source: sources#kimi-k3-pricing
-    notes: >-
-      Deprecation risk is live for this vendor; see the watch list (Kimi K2.5 and
-      moonshot-v1 retirement).
-
-  - id: gpt-oss-120b-cloud
-    vendor: multiple
-    tier: open-weights-hosted
-    input_per_mtok: 0.03
-    cached_input_per_mtok: null
-    output_per_mtok: 0.17
-    date: 2026-08-29
-    confidence: VOLATILE
-    source: sources#gpt-oss-120b-cloud-pricing
-    notes: >-
-      Cheapest tier observed (CoreWeave and DeepInfra). Spread across the 18 providers
-      tracked runs up to 8.9x, so provider selection matters more than model selection
-      inside this tier. Used as the cloud comparator for self-hosting the same weights.
+- id: glm-5.3-flash
+  vendor: Zhipu
+  tier: volume
+  input_per_mtok: 0.15
+  cached_input_per_mtok: 0.03
+  output_per_mtok: 0.5
+  date: 2026-08-29
+  confidence: VOLATILE
+  source: sources#glm-53-flash-pricing
+  promo:
+    description: 50 percent off all three rates
+    multiplier: 0.5
+    expires: 2026-09-09
+    expires_note: ends 24:00 UTC+8
+    confidence: EXPIRES
+  peak_pricing: null
+- id: deepseek-v4-flash
+  vendor: DeepSeek
+  tier: volume
+  input_per_mtok: 0.22
+  cached_input_per_mtok: 0.007
+  output_per_mtok: 0.66
+  date: 2026-08-29
+  confidence: VOLATILE
+  source: sources#deepseek-v4-flash-pricing
+  peak_pricing:
+    multiplier: 2.0
+    windows_utc:
+    - 01:00-04:00
+    - 06:00-10:00
+    confidence: CONFIRMED
+    note: 7 peak hours on 5 days is 35 of 168 hours a week, so an unscheduled 24/7 loop sits at f_peak
+      = 0.208. The handoff used 7/24 = 0.29 by assuming the windows ran every day, which overstated the
+      peak bill.
+    days_per_week: 5
+    days_note: Monday to Friday only, verified verbatim from the vendor's pricing page
+  history:
+  - field: output_per_mtok
+    value: 0.28
+    superseded: 2026-08-16
+    confidence: CONFIRMED
+    note: Output moved from 0.28 flat to 0.66 off-peak / 1.32 peak in one change on 2026-08-16, a 371
+      percent move at peak. Treat this vendor's pricing as unstable.
+  - field: peak_pricing.days_per_week
+    value: 7
+    superseded: *id001
+    note: handoff assumed peak windows every day; the vendor publishes Mon-Fri.
+  context_window: 1000000
+  open_weights: true
+  notes: Off-peak rates. MIT licensed.
+- id: kimi-k3
+  vendor: Moonshot
+  tier: frontier
+  input_per_mtok: 3.0
+  cached_input_per_mtok: 0.3
+  output_per_mtok: 15.0
+  total_params_b: 2800
+  date: 2026-08-29
+  confidence: VOLATILE
+  source: sources#kimi-k3-pricing
+  notes: Deprecation risk is live for this vendor; see the watch list (Kimi K2.5 and moonshot-v1 retirement).
+- id: gpt-oss-120b-cloud
+  vendor: multiple
+  tier: open-weights-hosted
+  input_per_mtok: 0.03
+  cached_input_per_mtok: null
+  output_per_mtok: 0.17
+  date: 2026-08-29
+  confidence: VOLATILE
+  source: sources#gpt-oss-120b-cloud-pricing
+  notes: Cheapest tier observed (CoreWeave and DeepInfra). Spread across the 18 providers tracked runs
+    up to 8.9x, so provider selection matters more than model selection inside this tier. Used as the
+    cloud comparator for self-hosting the same weights.
+- id: claude-opus-5
+  vendor: Anthropic
+  tier: frontier
+  input_per_mtok: 5.0
+  cached_input_per_mtok: 0.5
+  output_per_mtok: 25.0
+  context_window: 1000000
+  open_weights: false
+  notes: Cached figure is the read rate. Cache writes cost 6.25 at 5min or 10 at 1h.
+  date: &id002 2026-08-31
+  confidence: CONFIRMED
+  source: https://platform.claude.com/docs/en/about-claude/pricing
+  peak_pricing: null
+- id: claude-fable-5
+  vendor: Anthropic
+  tier: frontier
+  input_per_mtok: 10.0
+  cached_input_per_mtok: 1.0
+  output_per_mtok: 50.0
+  context_window: 1000000
+  open_weights: false
+  date: *id002
+  confidence: CONFIRMED
+  source: https://platform.claude.com/docs/en/about-claude/pricing
+  peak_pricing: null
+- id: claude-opus-4-8
+  vendor: Anthropic
+  tier: frontier
+  input_per_mtok: 5.0
+  cached_input_per_mtok: 0.5
+  output_per_mtok: 25.0
+  context_window: 1000000
+  open_weights: false
+  date: *id002
+  confidence: CONFIRMED
+  source: https://platform.claude.com/docs/en/about-claude/pricing
+  peak_pricing: null
+- id: claude-opus-4-7
+  vendor: Anthropic
+  tier: frontier
+  input_per_mtok: 5.0
+  cached_input_per_mtok: 0.5
+  output_per_mtok: 25.0
+  context_window: 1000000
+  open_weights: false
+  date: *id002
+  confidence: CONFIRMED
+  source: https://platform.claude.com/docs/en/about-claude/pricing
+  peak_pricing: null
+- id: claude-opus-4-6
+  vendor: Anthropic
+  tier: frontier
+  input_per_mtok: 5.0
+  cached_input_per_mtok: 0.5
+  output_per_mtok: 25.0
+  context_window: 1000000
+  open_weights: false
+  date: *id002
+  confidence: CONFIRMED
+  source: https://platform.claude.com/docs/en/about-claude/pricing
+  peak_pricing: null
+- id: claude-opus-4-5
+  vendor: Anthropic
+  tier: frontier
+  input_per_mtok: 5.0
+  cached_input_per_mtok: 0.5
+  output_per_mtok: 25.0
+  context_window: 200000
+  open_weights: false
+  notes: Legacy tier. Retirement not sooner than 2026-11-24.
+  date: *id002
+  confidence: CONFIRMED
+  source: https://platform.claude.com/docs/en/about-claude/pricing
+  peak_pricing: null
+- id: claude-sonnet-5
+  vendor: Anthropic
+  tier: midrange
+  input_per_mtok: 2.0
+  cached_input_per_mtok: 0.2
+  output_per_mtok: 10.0
+  context_window: 1000000
+  open_weights: false
+  notes: A planned 2026-09-01 rise to 3/15 was cancelled so this is now permanent.
+  date: *id002
+  confidence: CONFIRMED
+  source: https://platform.claude.com/docs/en/about-claude/pricing
+  peak_pricing: null
+- id: claude-sonnet-4-6
+  vendor: Anthropic
+  tier: midrange
+  input_per_mtok: 3.0
+  cached_input_per_mtok: 0.3
+  output_per_mtok: 15.0
+  context_window: 1000000
+  open_weights: false
+  date: *id002
+  confidence: CONFIRMED
+  source: https://platform.claude.com/docs/en/about-claude/pricing
+  peak_pricing: null
+- id: claude-haiku-4-5
+  vendor: Anthropic
+  tier: volume
+  input_per_mtok: 1.0
+  cached_input_per_mtok: 0.1
+  output_per_mtok: 5.0
+  context_window: 200000
+  open_weights: false
+  notes: Retirement not sooner than 2026-10-15.
+  date: *id002
+  confidence: CONFIRMED
+  source: https://platform.claude.com/docs/en/about-claude/pricing
+  peak_pricing: null
+- id: gpt-5.6-sol
+  vendor: OpenAI
+  tier: frontier
+  input_per_mtok: 4.0
+  cached_input_per_mtok: 0.4
+  output_per_mtok: 20.0
+  context_window: 1050000
+  open_weights: false
+  notes: Standard context tier. Long-context tier is 8/0.80/30. Live price reflects a promo guaranteed
+    through at least 2026-11-21.
+  date: *id002
+  confidence: CONFIRMED
+  source: https://developers.openai.com/api/docs/pricing
+  peak_pricing: null
+- id: gpt-5.6-terra
+  vendor: OpenAI
+  tier: frontier
+  input_per_mtok: 2.0
+  cached_input_per_mtok: 0.2
+  output_per_mtok: 12.0
+  context_window: 1050000
+  open_weights: false
+  notes: Standard context tier. Long-context is 4/0.40/18.
+  date: *id002
+  confidence: CONFIRMED
+  source: https://developers.openai.com/api/docs/pricing
+  peak_pricing: null
+- id: gpt-5.6-luna
+  vendor: OpenAI
+  tier: volume
+  input_per_mtok: 0.2
+  cached_input_per_mtok: 0.02
+  output_per_mtok: 1.2
+  context_window: 1050000
+  open_weights: false
+  notes: Standard context tier. Long-context is 0.40/0.04/1.80.
+  date: *id002
+  confidence: CONFIRMED
+  source: https://developers.openai.com/api/docs/pricing
+  peak_pricing: null
+- id: gpt-5.5
+  vendor: OpenAI
+  tier: frontier
+  input_per_mtok: 5.0
+  cached_input_per_mtok: 0.5
+  output_per_mtok: 30.0
+  open_weights: false
+  date: *id002
+  confidence: CONFIRMED
+  source: https://developers.openai.com/api/docs/pricing
+  peak_pricing: null
+- id: gpt-5.5-pro
+  vendor: OpenAI
+  tier: frontier
+  input_per_mtok: 30.0
+  output_per_mtok: 180.0
+  open_weights: false
+  notes: No cache tier offered.
+  date: *id002
+  confidence: CONFIRMED
+  source: https://developers.openai.com/api/docs/pricing
+  peak_pricing: null
+- id: gpt-5.4
+  vendor: OpenAI
+  tier: frontier
+  input_per_mtok: 2.5
+  cached_input_per_mtok: 0.25
+  output_per_mtok: 15.0
+  open_weights: false
+  date: *id002
+  confidence: CONFIRMED
+  source: https://developers.openai.com/api/docs/pricing
+  peak_pricing: null
+- id: gpt-5.4-mini
+  vendor: OpenAI
+  tier: midrange
+  input_per_mtok: 0.75
+  cached_input_per_mtok: 0.075
+  output_per_mtok: 4.5
+  open_weights: false
+  date: *id002
+  confidence: CONFIRMED
+  source: https://developers.openai.com/api/docs/pricing
+  peak_pricing: null
+- id: gpt-5.4-nano
+  vendor: OpenAI
+  tier: volume
+  input_per_mtok: 0.2
+  cached_input_per_mtok: 0.02
+  output_per_mtok: 1.25
+  open_weights: false
+  date: *id002
+  confidence: CONFIRMED
+  source: https://developers.openai.com/api/docs/pricing
+  peak_pricing: null
+- id: gpt-5.3-codex
+  vendor: OpenAI
+  tier: midrange
+  input_per_mtok: 1.75
+  cached_input_per_mtok: 0.175
+  output_per_mtok: 14.0
+  open_weights: false
+  date: *id002
+  confidence: CONFIRMED
+  source: https://developers.openai.com/api/docs/pricing
+  peak_pricing: null
+- id: gpt-5.2
+  vendor: OpenAI
+  tier: midrange
+  input_per_mtok: 1.75
+  cached_input_per_mtok: 0.175
+  output_per_mtok: 14.0
+  context_window: 400000
+  open_weights: false
+  date: *id002
+  confidence: CONFIRMED
+  source: https://developers.openai.com/api/docs/pricing
+  peak_pricing: null
+- id: gpt-5.1
+  vendor: OpenAI
+  tier: midrange
+  input_per_mtok: 1.25
+  cached_input_per_mtok: 0.125
+  output_per_mtok: 10.0
+  open_weights: false
+  date: *id002
+  confidence: CONFIRMED
+  source: https://developers.openai.com/api/docs/pricing
+  peak_pricing: null
+- id: gpt-5
+  vendor: OpenAI
+  tier: midrange
+  input_per_mtok: 1.25
+  cached_input_per_mtok: 0.125
+  output_per_mtok: 10.0
+  open_weights: false
+  notes: Dated snapshot retires 2026-12-11.
+  date: *id002
+  confidence: CONFIRMED
+  source: https://developers.openai.com/api/docs/pricing
+  peak_pricing: null
+- id: gpt-5-mini
+  vendor: OpenAI
+  tier: volume
+  input_per_mtok: 0.25
+  cached_input_per_mtok: 0.025
+  output_per_mtok: 2.0
+  open_weights: false
+  notes: Retires 2026-12-11.
+  date: *id002
+  confidence: CONFIRMED
+  source: https://developers.openai.com/api/docs/pricing
+  peak_pricing: null
+- id: gpt-5-nano
+  vendor: OpenAI
+  tier: volume
+  input_per_mtok: 0.05
+  cached_input_per_mtok: 0.005
+  output_per_mtok: 0.4
+  open_weights: false
+  notes: Retires 2026-12-11.
+  date: *id002
+  confidence: CONFIRMED
+  source: https://developers.openai.com/api/docs/pricing
+  peak_pricing: null
+- id: gpt-5-pro
+  vendor: OpenAI
+  tier: frontier
+  input_per_mtok: 15.0
+  output_per_mtok: 120.0
+  open_weights: false
+  date: *id002
+  confidence: CONFIRMED
+  source: https://developers.openai.com/api/docs/pricing
+  peak_pricing: null
+- id: gpt-4.1
+  vendor: OpenAI
+  tier: midrange
+  input_per_mtok: 2.0
+  cached_input_per_mtok: 0.5
+  output_per_mtok: 8.0
+  context_window: 1047576
+  open_weights: false
+  date: *id002
+  confidence: CONFIRMED
+  source: https://developers.openai.com/api/docs/pricing
+  peak_pricing: null
+- id: gpt-4.1-mini
+  vendor: OpenAI
+  tier: volume
+  input_per_mtok: 0.4
+  cached_input_per_mtok: 0.1
+  output_per_mtok: 1.6
+  context_window: 1047576
+  open_weights: false
+  date: *id002
+  confidence: CONFIRMED
+  source: https://developers.openai.com/api/docs/pricing
+  peak_pricing: null
+- id: gpt-4.1-nano
+  vendor: OpenAI
+  tier: volume
+  input_per_mtok: 0.1
+  cached_input_per_mtok: 0.025
+  output_per_mtok: 0.4
+  context_window: 1047576
+  open_weights: false
+  date: *id002
+  confidence: CONFIRMED
+  source: https://developers.openai.com/api/docs/pricing
+  peak_pricing: null
+- id: gpt-4o
+  vendor: OpenAI
+  tier: midrange
+  input_per_mtok: 2.5
+  cached_input_per_mtok: 1.25
+  output_per_mtok: 10.0
+  open_weights: false
+  date: *id002
+  confidence: CONFIRMED
+  source: https://developers.openai.com/api/docs/pricing
+  peak_pricing: null
+- id: gpt-4o-mini
+  vendor: OpenAI
+  tier: volume
+  input_per_mtok: 0.15
+  cached_input_per_mtok: 0.075
+  output_per_mtok: 0.6
+  context_window: 128000
+  open_weights: false
+  date: *id002
+  confidence: CONFIRMED
+  source: https://developers.openai.com/api/docs/pricing
+  peak_pricing: null
+- id: o3
+  vendor: OpenAI
+  tier: midrange
+  input_per_mtok: 2.0
+  cached_input_per_mtok: 0.5
+  output_per_mtok: 8.0
+  context_window: 200000
+  open_weights: false
+  notes: Preview snapshots retire 2026-12-11.
+  date: *id002
+  confidence: CONFIRMED
+  source: https://developers.openai.com/api/docs/pricing
+  peak_pricing: null
+- id: o3-pro
+  vendor: OpenAI
+  tier: frontier
+  input_per_mtok: 20.0
+  output_per_mtok: 80.0
+  context_window: 200000
+  open_weights: false
+  date: *id002
+  confidence: CONFIRMED
+  source: https://developers.openai.com/api/docs/pricing
+  peak_pricing: null
+- id: o4-mini
+  vendor: OpenAI
+  tier: volume
+  input_per_mtok: 1.1
+  cached_input_per_mtok: 0.275
+  output_per_mtok: 4.4
+  context_window: 200000
+  open_weights: false
+  notes: Retires 2026-10-23.
+  date: *id002
+  confidence: CONFIRMED
+  source: https://developers.openai.com/api/docs/pricing
+  peak_pricing: null
+- id: gemini-2.5-pro
+  vendor: Google
+  tier: frontier
+  input_per_mtok: 1.25
+  cached_input_per_mtok: 0.125
+  output_per_mtok: 10.0
+  context_window: 1048576
+  open_weights: false
+  notes: Prices are the sub-200K tier. Above 200K it is 2.50/0.25/15. Cache storage bills 4.50 per Mtok-hour
+    separately.
+  date: *id002
+  confidence: CONFIRMED
+  source: https://ai.google.dev/gemini-api/docs/pricing
+  peak_pricing: null
+- id: gemini-2.5-flash
+  vendor: Google
+  tier: volume
+  input_per_mtok: 0.3
+  cached_input_per_mtok: 0.03
+  output_per_mtok: 2.5
+  context_window: 1048576
+  open_weights: false
+  notes: Text/image/video rate. Audio input is 1.00. Cache storage 1.00 per Mtok-hour.
+  date: *id002
+  confidence: CONFIRMED
+  source: https://ai.google.dev/gemini-api/docs/pricing
+  peak_pricing: null
+- id: gemini-2.5-flash-lite
+  vendor: Google
+  tier: volume
+  input_per_mtok: 0.1
+  cached_input_per_mtok: 0.01
+  output_per_mtok: 0.4
+  open_weights: false
+  notes: Text/image/video rate. Audio input is 0.30.
+  date: *id002
+  confidence: CONFIRMED
+  source: https://ai.google.dev/gemini-api/docs/pricing
+  peak_pricing: null
+- id: gemini-3.7-flash
+  vendor: Google
+  tier: volume
+  input_per_mtok: 0.75
+  cached_input_per_mtok: 0.075
+  output_per_mtok: 3.75
+  context_window: 1000000
+  open_weights: false
+  notes: Promotional through 2026-12-31. Rises to 1.50/0.15/7.50 on 2027-01-01.
+  date: *id002
+  confidence: EXPIRES
+  source: https://ai.google.dev/gemini-api/docs/pricing
+  peak_pricing: null
+- id: gemini-3.6-flash
+  vendor: Google
+  tier: volume
+  input_per_mtok: 0.75
+  cached_input_per_mtok: 0.075
+  output_per_mtok: 3.75
+  open_weights: false
+  notes: Same 2027-01-01 step as 3.7.
+  date: *id002
+  confidence: EXPIRES
+  source: https://ai.google.dev/gemini-api/docs/pricing
+  peak_pricing: null
+- id: gemini-3.5-flash
+  vendor: Google
+  tier: volume
+  input_per_mtok: 1.5
+  cached_input_per_mtok: 0.15
+  output_per_mtok: 9.0
+  open_weights: false
+  date: *id002
+  confidence: CONFIRMED
+  source: https://ai.google.dev/gemini-api/docs/pricing
+  peak_pricing: null
+- id: gemini-3.5-flash-lite
+  vendor: Google
+  tier: volume
+  input_per_mtok: 0.3
+  cached_input_per_mtok: 0.03
+  output_per_mtok: 2.5
+  open_weights: false
+  date: *id002
+  confidence: CONFIRMED
+  source: https://ai.google.dev/gemini-api/docs/pricing
+  peak_pricing: null
+- id: gemini-3.1-flash-lite
+  vendor: Google
+  tier: volume
+  input_per_mtok: 0.25
+  cached_input_per_mtok: 0.025
+  output_per_mtok: 1.5
+  open_weights: false
+  notes: Text/image/video rate. Audio input is 0.50.
+  date: *id002
+  confidence: CONFIRMED
+  source: https://ai.google.dev/gemini-api/docs/pricing
+  peak_pricing: null
+- id: gemini-3.1-pro-preview
+  vendor: Google
+  tier: frontier
+  input_per_mtok: 2.0
+  cached_input_per_mtok: 0.2
+  output_per_mtok: 12.0
+  open_weights: false
+  notes: Sub-200K tier. Preview status.
+  date: *id002
+  confidence: CONFIRMED
+  source: https://ai.google.dev/gemini-api/docs/pricing
+  peak_pricing: null
+- id: gemini-3-flash-preview
+  vendor: Google
+  tier: volume
+  input_per_mtok: 0.5
+  cached_input_per_mtok: 0.05
+  output_per_mtok: 3.0
+  open_weights: false
+  notes: Preview status.
+  date: *id002
+  confidence: CONFIRMED
+  source: https://ai.google.dev/gemini-api/docs/pricing
+  peak_pricing: null
+- id: grok-4.6
+  vendor: xAI
+  tier: frontier
+  input_per_mtok: 2.0
+  cached_input_per_mtok: 0.5
+  output_per_mtok: 6.0
+  context_window: 500000
+  open_weights: false
+  notes: Sub-200K tier. Above 200K doubles to 4/1.00/12.
+  date: *id002
+  confidence: CONFIRMED
+  source: https://docs.x.ai/docs/models
+  peak_pricing: null
+- id: grok-4.5
+  vendor: xAI
+  tier: frontier
+  input_per_mtok: 2.0
+  cached_input_per_mtok: 0.3
+  output_per_mtok: 6.0
+  context_window: 500000
+  open_weights: false
+  notes: Sub-200K tier.
+  date: *id002
+  confidence: CONFIRMED
+  source: https://docs.x.ai/docs/models
+  peak_pricing: null
+- id: grok-4.3
+  vendor: xAI
+  tier: midrange
+  input_per_mtok: 1.25
+  cached_input_per_mtok: 0.2
+  output_per_mtok: 2.5
+  context_window: 1000000
+  open_weights: false
+  notes: Sub-200K tier.
+  date: *id002
+  confidence: CONFIRMED
+  source: https://docs.x.ai/docs/models
+  peak_pricing: null
+- id: grok-build-0.1
+  vendor: xAI
+  tier: midrange
+  input_per_mtok: 1.0
+  cached_input_per_mtok: 0.2
+  output_per_mtok: 2.0
+  context_window: 256000
+  open_weights: false
+  notes: Coding focused. Sub-200K tier.
+  date: *id002
+  confidence: CONFIRMED
+  source: https://docs.x.ai/docs/models
+  peak_pricing: null
+- id: deepseek-v4-pro
+  vendor: DeepSeek
+  tier: midrange
+  input_per_mtok: 0.66
+  cached_input_per_mtok: 0.022
+  output_per_mtok: 1.98
+  context_window: 1000000
+  open_weights: true
+  notes: Off-peak rates. MIT licensed. 384K max output.
+  date: *id002
+  confidence: CONFIRMED
+  source: https://api-docs.deepseek.com/quick_start/pricing
+  peak_pricing:
+    multiplier: 2.0
+    windows_utc:
+    - 01:00-04:00
+    - 06:00-10:00
+    days_per_week: 5
+    days_note: Monday to Friday only, verified verbatim from the vendor's pricing page
+    confidence: CONFIRMED
+    note: 7 peak hours on 5 days is 35 of 168 hours a week, so an unscheduled 24/7 loop sits at f_peak
+      = 0.208. The handoff used 7/24 = 0.29 by assuming the windows ran every day, which overstated the
+      peak bill.
+  history:
+  - field: peak_pricing.days_per_week
+    value: 7
+    superseded: *id001
+    note: handoff assumed peak windows every day; the vendor publishes Mon-Fri.
+- id: glm-5.3
+  vendor: Zhipu
+  tier: frontier
+  input_per_mtok: 1.4
+  cached_input_per_mtok: 0.26
+  output_per_mtok: 4.4
+  context_window: 1000000
+  open_weights: true
+  notes: One report claims this is coding-plan-only but the official docs table lists a per-token price.
+  date: *id002
+  confidence: CONFIRMED
+  source: https://docs.z.ai/guides/overview/pricing
+  peak_pricing: null
+- id: glm-5.2
+  vendor: Zhipu
+  tier: frontier
+  input_per_mtok: 1.4
+  cached_input_per_mtok: 0.26
+  output_per_mtok: 4.4
+  context_window: 1000000
+  open_weights: true
+  date: *id002
+  confidence: CONFIRMED
+  source: https://docs.z.ai/guides/overview/pricing
+  peak_pricing: null
+- id: glm-5.1
+  vendor: Zhipu
+  tier: frontier
+  input_per_mtok: 1.4
+  output_per_mtok: 4.4
+  context_window: 200000
+  open_weights: true
+  notes: A conflicting third-party figure of 0.91/2.86 was checked and rejected against official docs.
+  date: *id002
+  confidence: CONFIRMED
+  source: https://docs.z.ai/guides/overview/pricing
+  peak_pricing: null
+- id: glm-5
+  vendor: Zhipu
+  tier: frontier
+  input_per_mtok: 1.0
+  cached_input_per_mtok: 0.2
+  output_per_mtok: 3.2
+  context_window: 200000
+  open_weights: true
+  date: *id002
+  confidence: CONFIRMED
+  source: https://docs.z.ai/guides/overview/pricing
+  peak_pricing: null
+- id: glm-4.7
+  vendor: Zhipu
+  tier: midrange
+  input_per_mtok: 0.6
+  cached_input_per_mtok: 0.11
+  output_per_mtok: 2.2
+  context_window: 200000
+  open_weights: true
+  date: *id002
+  confidence: CONFIRMED
+  source: https://docs.z.ai/guides/overview/pricing
+  peak_pricing: null
+- id: glm-4.7-flashx
+  vendor: Zhipu
+  tier: volume
+  input_per_mtok: 0.07
+  output_per_mtok: 0.4
+  open_weights: true
+  date: *id002
+  confidence: CONFIRMED
+  source: https://docs.z.ai/guides/overview/pricing
+  peak_pricing: null
+- id: glm-4.6
+  vendor: Zhipu
+  tier: midrange
+  input_per_mtok: 0.6
+  cached_input_per_mtok: 0.11
+  output_per_mtok: 2.2
+  context_window: 200000
+  open_weights: true
+  date: *id002
+  confidence: CONFIRMED
+  source: https://docs.z.ai/guides/overview/pricing
+  peak_pricing: null
+- id: glm-4.5
+  vendor: Zhipu
+  tier: midrange
+  input_per_mtok: 0.6
+  cached_input_per_mtok: 0.11
+  output_per_mtok: 2.2
+  context_window: 128000
+  open_weights: true
+  date: *id002
+  confidence: CONFIRMED
+  source: https://docs.z.ai/guides/overview/pricing
+  peak_pricing: null
+- id: glm-4.5-air
+  vendor: Zhipu
+  tier: volume
+  input_per_mtok: 0.2
+  cached_input_per_mtok: 0.03
+  output_per_mtok: 1.1
+  open_weights: true
+  date: *id002
+  confidence: CONFIRMED
+  source: https://docs.z.ai/guides/overview/pricing
+  peak_pricing: null
+- id: kimi-k2.7-code
+  vendor: Moonshot
+  tier: midrange
+  input_per_mtok: 0.95
+  cached_input_per_mtok: 0.19
+  output_per_mtok: 4.0
+  context_window: 262144
+  open_weights: true
+  date: *id002
+  confidence: CONFIRMED
+  source: https://platform.kimi.ai/docs/pricing/chat-k27-code
+  peak_pricing: null
+- id: kimi-k2.6
+  vendor: Moonshot
+  tier: midrange
+  input_per_mtok: 0.95
+  cached_input_per_mtok: 0.16
+  output_per_mtok: 4.0
+  context_window: 262144
+  open_weights: true
+  date: *id002
+  confidence: CONFIRMED
+  source: https://platform.kimi.ai/docs/pricing/chat-k26
+  peak_pricing: null
+- id: qwen3.8-max
+  vendor: Alibaba
+  tier: frontier
+  input_per_mtok: 2.0
+  output_per_mtok: 6.0
+  context_window: 1000000
+  open_weights: false
+  notes: Cache discount is a formula around 10 percent of input not a flat rate.
+  date: *id002
+  confidence: CONFIRMED
+  source: https://www.alibabacloud.com/help/en/model-studio/model-pricing
+  peak_pricing: null
+- id: qwen3.7-max
+  vendor: Alibaba
+  tier: frontier
+  input_per_mtok: 2.5
+  output_per_mtok: 7.5
+  context_window: 1000000
+  open_weights: false
+  notes: A limited-time 50 percent discount is active with no stated expiry and it is unclear whether
+    the listed price is pre or post discount.
+  date: *id002
+  confidence: VOLATILE
+  source: https://www.alibabacloud.com/help/en/model-studio/model-pricing
+  peak_pricing: null
+- id: qwen-max
+  vendor: Alibaba
+  tier: frontier
+  input_per_mtok: 1.6
+  output_per_mtok: 6.4
+  context_window: 1000000
+  open_weights: false
+  notes: Legacy. Non-thinking only.
+  date: *id002
+  confidence: CONFIRMED
+  source: https://www.alibabacloud.com/help/en/model-studio/model-pricing
+  peak_pricing: null
+- id: qwen3.6-plus
+  vendor: Alibaba
+  tier: midrange
+  input_per_mtok: 0.5
+  output_per_mtok: 3.0
+  context_window: 1000000
+  open_weights: false
+  notes: Sub-256K tier. Above that it is 2.00/6.00.
+  date: *id002
+  confidence: CONFIRMED
+  source: https://www.alibabacloud.com/help/en/model-studio/model-pricing
+  peak_pricing: null
+- id: qwen3.8-flash
+  vendor: Alibaba
+  tier: volume
+  input_per_mtok: 0.15
+  output_per_mtok: 0.47
+  context_window: 1000000
+  open_weights: false
+  date: *id002
+  confidence: CONFIRMED
+  source: https://www.alibabacloud.com/help/en/model-studio/model-pricing
+  peak_pricing: null
+- id: qwq-plus
+  vendor: Alibaba
+  tier: midrange
+  input_per_mtok: 0.8
+  output_per_mtok: 2.4
+  open_weights: true
+  date: *id002
+  confidence: CONFIRMED
+  source: https://www.alibabacloud.com/help/en/model-studio/model-pricing
+  peak_pricing: null
+- id: qwen3.8-2.4t-a95b
+  vendor: Alibaba
+  tier: frontier
+  input_per_mtok: 2.0
+  output_per_mtok: 6.0
+  context_window: 984000
+  open_weights: true
+  notes: 2.4T total 95B active parameters. Open weights.
+  date: *id002
+  confidence: CONFIRMED
+  source: https://www.alibabacloud.com/help/en/model-studio/model-pricing
+  peak_pricing: null
+- id: qwen3.5-397b-a17b
+  vendor: Alibaba
+  tier: midrange
+  input_per_mtok: 0.6
+  output_per_mtok: 3.6
+  context_window: 262000
+  open_weights: true
+  date: *id002
+  confidence: CONFIRMED
+  source: https://www.alibabacloud.com/help/en/model-studio/model-pricing
+  peak_pricing: null
+- id: mistral-medium-3.5
+  vendor: Mistral
+  tier: midrange
+  input_per_mtok: 1.5
+  output_per_mtok: 7.5
+  context_window: 256000
+  open_weights: true
+  notes: Batch API is 50 percent off.
+  date: *id002
+  confidence: CONFIRMED
+  source: https://mistral.ai/pricing/api/
+  peak_pricing: null
+- id: mistral-large-3
+  vendor: Mistral
+  tier: midrange
+  input_per_mtok: 0.5
+  output_per_mtok: 1.5
+  context_window: 256000
+  open_weights: true
+  date: *id002
+  confidence: CONFIRMED
+  source: https://mistral.ai/pricing/api/
+  peak_pricing: null
+- id: mistral-small-4
+  vendor: Mistral
+  tier: volume
+  input_per_mtok: 0.15
+  output_per_mtok: 0.6
+  context_window: 256000
+  open_weights: true
+  date: *id002
+  confidence: CONFIRMED
+  source: https://mistral.ai/pricing/api/
+  peak_pricing: null
+- id: codestral
+  vendor: Mistral
+  tier: volume
+  input_per_mtok: 0.3
+  output_per_mtok: 0.9
+  open_weights: false
+  notes: Commercial license.
+  date: *id002
+  confidence: CONFIRMED
+  source: https://mistral.ai/pricing/api/
+  peak_pricing: null
+- id: ministral-3b
+  vendor: Mistral
+  tier: volume
+  input_per_mtok: 0.1
+  output_per_mtok: 0.1
+  context_window: 256000
+  open_weights: true
+  date: *id002
+  confidence: CONFIRMED
+  source: https://mistral.ai/pricing/api/
+  peak_pricing: null
+- id: ministral-8b
+  vendor: Mistral
+  tier: volume
+  input_per_mtok: 0.15
+  output_per_mtok: 0.15
+  context_window: 256000
+  open_weights: true
+  date: *id002
+  confidence: CONFIRMED
+  source: https://mistral.ai/pricing/api/
+  peak_pricing: null
+- id: ministral-14b
+  vendor: Mistral
+  tier: volume
+  input_per_mtok: 0.2
+  output_per_mtok: 0.2
+  context_window: 256000
+  open_weights: true
+  date: *id002
+  confidence: CONFIRMED
+  source: https://mistral.ai/pricing/api/
+  peak_pricing: null
+- id: muse-spark-1.2
+  vendor: Meta
+  tier: midrange
+  input_per_mtok: 1.25
+  cached_input_per_mtok: 0.15
+  output_per_mtok: 4.25
+  context_window: 1048576
+  open_weights: false
+  notes: Meta first-party API no longer serves Llama at all.
+  date: *id002
+  confidence: CONFIRMED
+  source: https://ai.developer.meta.com/docs/pricing-rate-limits
+  peak_pricing: null
+- id: muse-spark-1.2-contributor
+  vendor: Meta
+  tier: volume
+  input_per_mtok: 0.1
+  cached_input_per_mtok: 0.002
+  output_per_mtok: 0.2
+  context_window: 1048576
+  open_weights: false
+  notes: Permanently discounted in exchange for training-data-sharing consent. Not a time-limited promo.
+  date: *id002
+  confidence: CONFIRMED
+  source: https://ai.developer.meta.com/docs/pricing-rate-limits
+  peak_pricing: null
+- id: gpt-oss-120b-deepinfra
+  vendor: DeepInfra
+  tier: open-weights-hosted
+  input_per_mtok: 0.037
+  output_per_mtok: 0.17
+  context_window: 131072
+  open_weights: true
+  notes: Cheapest host found for this model. Notably below Together Fireworks and Groq.
+  date: *id002
+  confidence: VOLATILE
+  source: https://deepinfra.com/pricing
+  peak_pricing: null
+- id: gpt-oss-120b-together
+  vendor: Together
+  tier: open-weights-hosted
+  input_per_mtok: 0.15
+  output_per_mtok: 0.6
+  open_weights: true
+  date: *id002
+  confidence: VOLATILE
+  source: https://www.together.ai/pricing
+  peak_pricing: null
+- id: gpt-oss-120b-fireworks
+  vendor: Fireworks
+  tier: open-weights-hosted
+  input_per_mtok: 0.15
+  cached_input_per_mtok: 0.015
+  output_per_mtok: 0.6
+  open_weights: true
+  notes: Standard tier. Priority tier is 0.18/0.72.
+  date: *id002
+  confidence: VOLATILE
+  source: https://docs.fireworks.ai/serverless/pricing
+  peak_pricing: null
+- id: gpt-oss-120b-groq
+  vendor: Groq
+  tier: open-weights-hosted
+  input_per_mtok: 0.15
+  output_per_mtok: 0.6
+  context_window: 131072
+  open_weights: true
+  notes: About 500 tok/s.
+  date: *id002
+  confidence: VOLATILE
+  source: https://console.groq.com/docs/models
+  peak_pricing: null
+- id: gpt-oss-20b-deepinfra
+  vendor: DeepInfra
+  tier: open-weights-hosted
+  input_per_mtok: 0.03
+  output_per_mtok: 0.14
+  context_window: 131072
+  open_weights: true
+  date: *id002
+  confidence: VOLATILE
+  source: https://deepinfra.com/pricing
+  peak_pricing: null
+- id: gpt-oss-20b-groq
+  vendor: Groq
+  tier: open-weights-hosted
+  input_per_mtok: 0.075
+  output_per_mtok: 0.3
+  context_window: 131072
+  open_weights: true
+  notes: About 1000 tok/s.
+  date: *id002
+  confidence: VOLATILE
+  source: https://console.groq.com/docs/models
+  peak_pricing: null
+- id: llama-3.3-70b-deepinfra
+  vendor: DeepInfra
+  tier: open-weights-hosted
+  input_per_mtok: 0.1
+  output_per_mtok: 0.32
+  context_window: 128000
+  open_weights: true
+  notes: Turbo variant.
+  date: *id002
+  confidence: VOLATILE
+  source: https://deepinfra.com/pricing
+  peak_pricing: null
+- id: llama-4-scout-deepinfra
+  vendor: DeepInfra
+  tier: open-weights-hosted
+  input_per_mtok: 0.1
+  output_per_mtok: 0.3
+  context_window: 320000
+  open_weights: true
+  notes: 17B active 16 experts.
+  date: *id002
+  confidence: VOLATILE
+  source: https://deepinfra.com/pricing
+  peak_pricing: null
+- id: llama-4-maverick-deepinfra
+  vendor: DeepInfra
+  tier: open-weights-hosted
+  input_per_mtok: 0.2
+  output_per_mtok: 0.8
+  context_window: 1024000
+  open_weights: true
+  notes: 17B active 128 experts.
+  date: *id002
+  confidence: VOLATILE
+  source: https://deepinfra.com/pricing
+  peak_pricing: null
+- id: llama-3.1-8b-deepinfra
+  vendor: DeepInfra
+  tier: open-weights-hosted
+  input_per_mtok: 0.02
+  output_per_mtok: 0.04
+  context_window: 128000
+  open_weights: true
+  notes: Cheapest model on the index by blended rate.
+  date: *id002
+  confidence: VOLATILE
+  source: https://deepinfra.com/pricing
+  peak_pricing: null
+- id: qwen3-coder-480b-deepinfra
+  vendor: DeepInfra
+  tier: open-weights-hosted
+  input_per_mtok: 0.3
+  cached_input_per_mtok: 0.1
+  output_per_mtok: 1.0
+  context_window: 256000
+  open_weights: true
+  notes: Turbo variant.
+  date: *id002
+  confidence: VOLATILE
+  source: https://deepinfra.com/pricing
+  peak_pricing: null
+- id: qwen3-235b-a22b-deepinfra
+  vendor: DeepInfra
+  tier: open-weights-hosted
+  input_per_mtok: 0.09
+  output_per_mtok: 0.55
+  context_window: 256000
+  open_weights: true
+  notes: Instruct 2507.
+  date: *id002
+  confidence: VOLATILE
+  source: https://deepinfra.com/pricing
+  peak_pricing: null
+- id: deepseek-v4-pro-deepinfra
+  vendor: DeepInfra
+  tier: open-weights-hosted
+  input_per_mtok: 1.3
+  cached_input_per_mtok: 0.1
+  output_per_mtok: 2.6
+  context_window: 1024000
+  open_weights: true
+  notes: Cheaper output than DeepSeek first-party peak but more than off-peak.
+  date: *id002
+  confidence: VOLATILE
+  source: https://deepinfra.com/pricing
+  peak_pricing: null
+- id: deepseek-v4-flash-deepinfra
+  vendor: DeepInfra
+  tier: open-weights-hosted
+  input_per_mtok: 0.085
+  cached_input_per_mtok: 0.017
+  output_per_mtok: 0.18
+  context_window: 1024000
+  open_weights: true
+  notes: Two research passes disagreed slightly on input rate 0.08 vs 0.09. Midpoint recorded.
+  date: *id002
+  confidence: VOLATILE
+  source: https://deepinfra.com/pricing
+  peak_pricing: null
+- id: deepseek-v4-flash-together
+  vendor: Together
+  tier: open-weights-hosted
+  input_per_mtok: 0.14
+  cached_input_per_mtok: 0.03
+  output_per_mtok: 0.28
+  open_weights: true
+  date: *id002
+  confidence: VOLATILE
+  source: https://www.together.ai/pricing
+  peak_pricing: null
+- id: deepseek-r1-0528-deepinfra
+  vendor: DeepInfra
+  tier: open-weights-hosted
+  input_per_mtok: 0.5
+  cached_input_per_mtok: 0.35
+  output_per_mtok: 2.15
+  context_window: 160000
+  open_weights: true
+  date: *id002
+  confidence: VOLATILE
+  source: https://deepinfra.com/pricing
+  peak_pricing: null
+- id: qwen3.6-27b-groq
+  vendor: Groq
+  tier: open-weights-hosted
+  input_per_mtok: 0.6
+  output_per_mtok: 3.0
+  context_window: 131072
+  open_weights: true
+  notes: Preview tier.
+  date: *id002
+  confidence: VOLATILE
+  source: https://console.groq.com/docs/models
+  peak_pricing: null
+- id: qwen3.8-27b-groq
+  vendor: Groq
+  tier: open-weights-hosted
+  input_per_mtok: 0.8
+  output_per_mtok: 4.0
+  open_weights: true
+  notes: Preview tier.
+  date: *id002
+  confidence: VOLATILE
+  source: https://console.groq.com/docs/models
+  peak_pricing: null

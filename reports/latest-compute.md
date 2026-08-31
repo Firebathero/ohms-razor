@@ -112,19 +112,19 @@ The handoff's F7 figures back-solve to DDR5 near $16.06/GB, against the $35.70/G
 | Candidate set | In catalog | Fully placeable | Last surveyed | Status |
 |---|---:|---|---|---|
 | CPU candidates for the compute node | 4 | 4 priced, 4 screenable | never | **never surveyed** |
-| hosted models for the token tiers | 4 | see report | never | **never surveyed** |
+| hosted models for the token tiers | 97 | see report | 2026-08-31 | current |
 | local machines for on-box inference | 37 | see report | 2026-08-31 | current |
-| the capability axis itself | 7 | 2 costed | 2026-08-26 | current |
+| the capability axis itself | 49 | 32 costed | 2026-08-31 | current |
 
-2 of 4 candidate sets were inherited from the original research and have never been re-opened. Every ranking drawn from them is "best of these", not "best available". Run `python scripts/refresh_plan.py` for the survey scope and where to look, or `/refresh-data` to have an agent do it.
+1 of 4 candidate sets were inherited from the original research and have never been re-opened. Every ranking drawn from them is "best of these", not "best available". Run `python scripts/refresh_plan.py` for the survey scope and where to look, or `/refresh-data` to have an agent do it.
 
 ## How much to trust this today
 
 | Category | Figures | Oldest | Window | Status |
 |---|---:|---|---|---|
-| benchmarks | 1 | 2026-08-26 | 60d | fresh |
+| benchmarks | 1 | 2026-08-31 | 60d | fresh |
 | dram | 1 | 2026-08-14 | 14d | **1 flagged** |
 | hardware_pricing | 43 | 2026-06-15 | 30d | **2 flagged** |
-| model_pricing | 5 | 2026-08-29 | 30d | fresh |
+| model_pricing | 98 | 2026-08-29 | 30d | fresh |
 
 SPECrate submissions never expire and are not policed.
