@@ -49,12 +49,12 @@ Caveats, solved with the answer: kimi-k3, glm-5.3-max, claude-opus-5 sit at or a
 ## How wide was the search?
 
 <!-- gen:survey_status -->
-| Candidate set | Candidates | Last surveyed | Interval | Status |
-|---|---:|---|---:|---|
-| CPU candidates for the compute node | 4 | never | 90d | **never surveyed** |
-| hosted models for the token tiers | 4 | never | 30d | **never surveyed** |
-| local machines for on-box inference | 4 | never | 90d | **never surveyed** |
-| the capability axis itself | 7 | 2026-08-26 | 60d | current |
+| Candidate set | In catalog | Fully placeable | Last surveyed | Status |
+|---|---:|---|---|---|
+| CPU candidates for the compute node | 4 | 4 priced, 4 screenable | never | **never surveyed** |
+| hosted models for the token tiers | 4 | see report | never | **never surveyed** |
+| local machines for on-box inference | 4 | see report | never | **never surveyed** |
+| the capability axis itself | 7 | 2 costed | 2026-08-26 | current |
 
 3 of 4 candidate sets were inherited from the original research and have never been re-opened. Every ranking drawn from them is "best of these", not "best available". Run `python scripts/refresh_plan.py` for the survey scope and where to look, or `/refresh-data` to have an agent do it.
 <!-- /gen:survey_status -->

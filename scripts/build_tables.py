@@ -512,9 +512,10 @@ def render_survey_status() -> str:
     from datetime import date as _date
 
     today = _date.today()
+    cov = repo_data.cpu_coverage()
     lines = [
-        "| Candidate set | Candidates | Last surveyed | Interval | Status |",
-        "|---|---:|---|---:|---|",
+        "| Candidate set | In catalog | Fully placeable | Last surveyed | Status |",
+        "|---|---:|---|---|---|",
     ]
     for name, path, _yaml, what in refresh_plan.SURVEYED:
         blob = repo_data.load(name)
@@ -528,7 +529,16 @@ def render_survey_status() -> str:
             age = (today - last).days
             when = str(last)
             status = f"**{age}d overdue**" if age > interval else "current"
-        lines.append(f"| {what} | {n} | {when} | {interval}d | {status} |")
+        if name == "cpu_specs":
+            placeable = f"{cov.priced} priced, {cov.screenable} screenable"
+        elif name == "benchmarks":
+            costed = sum(
+                1 for e in repo_data.aa_index()["entries"] if e["cost_per_task_usd"] is not None
+            )
+            placeable = f"{costed} costed"
+        else:
+            placeable = "see report"
+        lines.append(f"| {what} | {n} | {placeable} | {when} | {status} |")
     unsurveyed = [
         name for name, _p, _y, _w in refresh_plan.SURVEYED
         if repo_data.load(name).get("survey", {}).get("last_surveyed") is None
@@ -543,6 +553,16 @@ def render_survey_status() -> str:
         )
     else:
         lines.append("Every candidate set has been surveyed inside its interval.")
+    targets = repo_data.pricing_targets()
+    if targets:
+        lines.append("")
+        lines.append(
+            f"{len(targets)} unpriced candidate(s) out-screen the current value winner on "
+            "perf/watt, so pricing them could change the answer: "
+            + ", ".join(f"{t.name} ({t.points_per_watt:.2f} pts/W)" for t in targets[:5])
+            + ". An unpriced candidate is not excluded from the repo, only from the value "
+            "ranking; it still competes on the efficiency axis."
+        )
     return "\n".join(lines)
 
 

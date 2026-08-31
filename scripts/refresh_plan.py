@@ -159,6 +159,29 @@ def build(today: date | None = None) -> list[Item]:
                      3)
             )
 
+    # Unpriced parts that out-screen the current value winner. These are the highest-value
+    # research in the repo: the only unpriced candidates whose price could move the answer.
+    try:
+        for t in repo_data.pricing_targets():
+            items.append(
+                Item("gap", f"price this contender: {t.name}", "data/cpu_specs.yaml",
+                     f"candidates[name={t.name}].price_street_usd", "sources#cpu-prices",
+                     f"out-screens the value winner by {t.beats_winner_by:.0%} on perf/watt "
+                     f"({t.points_per_watt:.2f} pts/W) but has no price, so it cannot be ranked",
+                     1)
+            )
+    except (ValueError, KeyError):
+        pass  # no priced baseline yet; the survey items already cover that
+
+    cov = repo_data.cpu_coverage()
+    for name in cov.unplaceable:
+        items.append(
+            Item("gap", f"unplaceable candidate: {name}", "data/cpu_specs.yaml",
+                 f"candidates[name={name}]", "sources#specrate",
+                 "in the catalog but missing a work rate or a power figure, so it appears on "
+                 "no graph", 3)
+        )
+
     src = (repo_data.ROOT / "data" / "SOURCES.md").read_text(encoding="utf-8")
     todo_links = src.count("TODO: link")
     if todo_links:

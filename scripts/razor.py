@@ -157,7 +157,7 @@ def _judge(
 class ComputeCandidate:
     label: str
     wall_w: float
-    psi: float
+    psi: float | None          # None = in the catalog, nobody has priced it
     points_per_watt: float
     work_points: float
     feasible: bool
@@ -171,23 +171,38 @@ class ComputeResult:
     objective: str
     min_points: float
     max_watts: float | None
+    coverage: repo_data.Coverage
+    pricing_targets: list[repo_data.PricingTarget]
 
 
 def solve_compute(min_points: float, max_watts: float | None, objective: str) -> ComputeResult:
-    sol = repo_data.solve_psi()
+    """Screens the whole catalog, then ranks on the chosen axis.
+
+    Note what the objective does to the field: efficiency needs no price, so it competes
+    every candidate with a published work rate. Value needs a price, so it competes only
+    what someone has researched. Picking the efficiency axis widens the search for free.
+    """
+    op = repo_data.operating_inputs()
+    priced = {c.name: c for c in repo_data.cpu_inputs() if c.priceable}
+    evaluations = {name: evaluate_cached(c, op) for name, c in priced.items()}
+
     candidates = []
-    for e in sol.evaluations:
+    for s in repo_data.solve_screening(op):
+        ev = evaluations.get(s.name)
         reasons = []
-        if e.work_rate < min_points:
-            reasons.append(f"{e.work_rate:,.0f} pts < {min_points:,.0f} floor")
-        if max_watts is not None and e.wall_power_w > max_watts:
-            reasons.append(f"{e.wall_power_w:,.0f}W wall > {max_watts:,.0f}W cap")
+        if s.work_rate < min_points:
+            reasons.append(f"{s.work_rate:,.0f} pts < {min_points:,.0f} floor")
+        if max_watts is not None and s.wall_power_w > max_watts:
+            reasons.append(f"{s.wall_power_w:,.0f}W wall > {max_watts:,.0f}W cap")
+        if objective == "value" and ev is None:
+            reasons.append("no price yet")
         candidates.append(
             ComputeCandidate(
-                e.name, e.wall_power_w, e.psi, e.points_per_watt, e.work_rate,
-                not reasons, "; ".join(reasons),
+                s.name, s.wall_power_w, ev.psi if ev else None, s.points_per_watt,
+                s.work_rate, not reasons, "; ".join(reasons),
             )
         )
+
     feasible = [c for c in candidates if c.feasible]
     winner = None
     if feasible:
@@ -195,7 +210,16 @@ def solve_compute(min_points: float, max_watts: float | None, objective: str) ->
             winner = max(feasible, key=lambda c: c.points_per_watt)
         else:
             winner = min(feasible, key=lambda c: c.psi)
-    return ComputeResult(candidates, winner, objective, min_points, max_watts)
+    return ComputeResult(
+        candidates, winner, objective, min_points, max_watts,
+        repo_data.cpu_coverage(), repo_data.pricing_targets(op),
+    )
+
+
+def evaluate_cached(cpu, op):
+    from models.hardware_psi import evaluate
+
+    return evaluate(cpu, op)
 
 
 # ---------------------------------------------------------------- plots
@@ -258,17 +282,30 @@ def plot_compute(r: ComputeResult, path: Path) -> None:
 
     fig, ax = plt.subplots(figsize=(8, 5), dpi=150)
     efficiency = r.objective == "efficiency"
-    for c in r.candidates:
+    plotted = [c for c in r.candidates if (c.points_per_watt if efficiency else c.psi) is not None]
+    dense = len(plotted) > 12  # a wide catalog: label the interesting points only
+    ranked = sorted(
+        plotted,
+        key=lambda c: -c.points_per_watt if efficiency else (c.psi or float("inf")),
+    )
+    label_these = {c.label for c in ranked[:6]}
+    if r.winner:
+        label_these.add(r.winner.label)
+
+    for c in plotted:
         y = c.points_per_watt if efficiency else c.psi
         color = "tab:blue" if c.feasible else "silver"
-        ax.scatter(c.wall_w, y, s=70, color=color, zorder=3)
+        ax.scatter(c.wall_w, y, s=70 if not dense else 42, color=color, zorder=3,
+                   alpha=1.0 if c.feasible else 0.7)
+        if dense and c.label not in label_these:
+            continue
         note = f"{c.label.replace('AMD EPYC ', '')}\n{c.work_points:,.0f} pts"
-        if not c.feasible:
+        if not c.feasible and not dense:
             note += f"\nout: {c.excluded_by}"
         ax.annotate(note, (c.wall_w, y), textcoords="offset points", xytext=(8, 5),
                     fontsize=7.5, color="black" if c.feasible else "gray")
-    xs = [c.wall_w for c in r.candidates] + ([r.max_watts] if r.max_watts else [])
-    ys = [c.points_per_watt if efficiency else c.psi for c in r.candidates]
+    xs = [c.wall_w for c in plotted] + ([r.max_watts] if r.max_watts else [])
+    ys = [(c.points_per_watt if efficiency else c.psi) for c in plotted]
     xpad, ypad = (max(xs) - min(xs)) or 50, (max(ys) - min(ys)) or 1
     ax.set_xlim(min(xs) - xpad * 0.12, max(xs) + xpad * 0.45)
     ax.set_ylim(min(ys) - ypad * 0.15, max(ys) + ypad * 0.22)
@@ -289,7 +326,17 @@ def plot_compute(r: ComputeResult, path: Path) -> None:
     floor = f", work >= {r.min_points:,.0f} pts" if r.min_points else ""
     ax.set_title(f"Compute: {r.objective} above your lines{floor}")
     ax.grid(True, alpha=0.25)
-    fig.tight_layout()
+    cov = r.coverage
+    footer = (
+        f"{cov.total} in catalog, {cov.screenable} with a work rate, {cov.priced} priced. "
+        f"Plotted: {len(plotted)}."
+    )
+    if r.objective == "value" and cov.screenable > cov.priced:
+        footer += f" {cov.screenable - cov.priced} screened but unpriced, so they cannot be ranked here."
+    if r.pricing_targets:
+        footer += f" {len(r.pricing_targets)} unpriced part(s) out-screen the value winner."
+    fig.text(0.01, 0.01, footer, fontsize=6.5, color="dimgray", wrap=True)
+    fig.tight_layout(rect=(0, 0.04, 1, 1))
     fig.savefig(path)
     plt.close(fig)
 
@@ -333,16 +380,37 @@ def main() -> int:
     if tokens.unplaceable:
         print("  not placeable: " + "; ".join(tokens.unplaceable))
 
+    cov = compute.coverage
     print(f"\nCOMPUTE objective={compute.objective}"
           + (f"  work>={compute.min_points:,.0f} pts" if compute.min_points else "")
           + (f"  wall<={compute.max_watts:,.0f}W" if compute.max_watts else ""))
-    for c in sorted(compute.candidates, key=lambda c: c.psi):
+    print(f"        catalog={cov.total}  with work rate={cov.screenable}  priced={cov.priced}")
+    ranked = sorted(
+        compute.candidates,
+        key=lambda c: (c.psi if c.psi is not None else float("inf"), -c.points_per_watt),
+    )
+    shown = ranked if len(ranked) <= 15 else [c for c in ranked if c.feasible][:10] + [
+        c for c in ranked if not c.feasible
+    ][:5]
+    for c in shown:
         mark = "->" if compute.winner and c.label == compute.winner.label else ("  " if c.feasible else " x")
+        psi = f"Psi ${c.psi:>6.2f}/pt-yr" if c.psi is not None else "Psi     unpriced"
         why = f"  [{c.excluded_by}]" if c.excluded_by else ""
-        print(f"  {mark} {c.label:16s} Psi ${c.psi:.2f}/pt-yr  {c.points_per_watt:.2f} pts/W  "
-              f"{c.wall_w:,.0f}W wall{why}")
+        print(f"  {mark} {c.label:26s} {psi}  {c.points_per_watt:5.2f} pts/W  "
+              f"{c.wall_w:>5,.0f}W wall{why}")
+    if len(ranked) > len(shown):
+        print(f"     ...and {len(ranked) - len(shown)} more (see the plot)")
     if compute.winner is None:
         print("  no feasible candidate above your lines; loosen a threshold")
+    if cov.unplaceable:
+        print(f"  not placeable ({len(cov.unplaceable)}, missing a work rate or power figure): "
+              + ", ".join(cov.unplaceable[:6])
+              + (f", +{len(cov.unplaceable) - 6} more" if len(cov.unplaceable) > 6 else ""))
+    if compute.pricing_targets:
+        print(f"\n  WORTH PRICING: {len(compute.pricing_targets)} unpriced part(s) beat the value "
+              "winner on perf/watt, so a price could change the answer:")
+        for t in compute.pricing_targets[:6]:
+            print(f"    {t.name:26s} {t.points_per_watt:5.2f} pts/W  (+{t.beats_winner_by:.0%})")
 
     import refresh_plan
 

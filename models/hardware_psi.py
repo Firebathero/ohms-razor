@@ -43,13 +43,42 @@ class OperatingInputs:
 
 @dataclass(frozen=True)
 class CpuInputs:
+    """A catalog entry. Both the work rate and the price are optional, because breadth is
+    only affordable if adding a candidate does not require finishing its research first.
+
+    A part with neither can still sit in the catalog and be reported as unplaceable.
+    A part with a work rate but no price can be screened (ranked on perf/watt, which needs
+    no price) and, if it screens well, becomes a target worth pricing.
+    Only a part with both can be ranked on Psi.
+    """
+
     name: str
-    specrate_2p: float
+    specrate_2p: float | None
     sigma: float
     phi: float
     ctdp_w: float
-    cpu_price_usd: float
+    cpu_price_usd: float | None
     non_cpu_capex_usd: float
+
+    @property
+    def screenable(self) -> bool:
+        return self.specrate_2p is not None
+
+    @property
+    def priceable(self) -> bool:
+        return self.screenable and self.cpu_price_usd is not None
+
+
+@dataclass(frozen=True)
+class Screening:
+    """Price-free evaluation. Everything here comes from published specs, so every catalog
+    entry with a work rate gets one, and a candidate can be compared on efficiency long
+    before anyone has gone to the trouble of pricing it."""
+
+    name: str
+    work_rate: float
+    wall_power_w: float
+    points_per_watt: float
 
 
 @dataclass(frozen=True)
@@ -99,7 +128,22 @@ def npv_year_factor(years: float, escalation: float, discount: float) -> float:
     return (1.0 - ratio**years) / (1.0 - ratio)
 
 
+def screen(cpu: CpuInputs, op: OperatingInputs) -> Screening:
+    """Rank a candidate without knowing its price. This is what makes a wide catalog
+    affordable: SPECrate and TDP are published for everything, so the efficiency axis
+    covers the whole field while the value axis covers only what someone has priced."""
+    if cpu.specrate_2p is None:
+        raise ValueError(f"{cpu.name} has no work rate; it cannot be screened")
+    w = work_rate(cpu.specrate_2p, cpu.sigma, cpu.phi)
+    p_wall = wall_power(cpu.ctdp_w, op.platform_draw_w, op.psu_efficiency)
+    return Screening(name=cpu.name, work_rate=w, wall_power_w=p_wall, points_per_watt=w / p_wall)
+
+
 def evaluate(cpu: CpuInputs, op: OperatingInputs) -> Evaluation:
+    if cpu.specrate_2p is None or cpu.cpu_price_usd is None:
+        raise ValueError(
+            f"{cpu.name} is missing a work rate or a price; screen() it instead of ranking it on Psi"
+        )
     w = work_rate(cpu.specrate_2p, cpu.sigma, cpu.phi)
     p_wall = wall_power(cpu.ctdp_w, op.platform_draw_w, op.psu_efficiency)
     p_eff = duty_weighted_power(p_wall, op.idle_draw_w, op.utilization)

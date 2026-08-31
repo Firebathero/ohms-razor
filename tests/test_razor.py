@@ -96,6 +96,99 @@ class TestComputeThresholds:
         assert razor.solve_compute(0.0, 100.0, "value").winner is None
 
 
+class TestBreadth:
+    """A candidate that nobody has priced must stay in the running on the axis that needs
+    no price. Otherwise the catalog can only ever hold fully-researched parts, which is
+    what kept it at four."""
+
+    def test_unpriced_candidates_are_screened_not_dropped(self):
+        from models.hardware_psi import CpuInputs, screen
+
+        op = repo_data.operating_inputs()
+        unpriced = CpuInputs(
+            name="hypothetical", specrate_2p=3000.0, sigma=0.5256, phi=1.0,
+            ctdp_w=400.0, cpu_price_usd=None, non_cpu_capex_usd=15808.8,
+        )
+        assert unpriced.screenable
+        assert not unpriced.priceable
+        s = screen(unpriced, op)
+        assert s.points_per_watt > 0
+        with pytest.raises(ValueError):
+            from models.hardware_psi import evaluate
+
+            evaluate(unpriced, op)
+
+    def test_efficiency_axis_competes_at_least_as_many_candidates(self):
+        """Efficiency needs no price, so it can never see fewer candidates than value."""
+        value = razor.solve_compute(0.0, None, "value")
+        efficiency = razor.solve_compute(0.0, None, "efficiency")
+        v_feasible = sum(1 for c in value.candidates if c.feasible)
+        e_feasible = sum(1 for c in efficiency.candidates if c.feasible)
+        assert e_feasible >= v_feasible
+
+    def test_unpriced_candidate_is_excluded_from_value_with_a_reason(self):
+        r = razor.solve_compute(0.0, None, "value")
+        for c in r.candidates:
+            if c.psi is None:
+                assert not c.feasible
+                assert "no price" in c.excluded_by
+
+    def test_coverage_counts_are_consistent(self):
+        cov = repo_data.cpu_coverage()
+        assert cov.total >= cov.screenable >= cov.priced
+        assert 0.0 <= cov.priced_share <= 1.0
+
+    def test_pricing_targets_only_name_unpriced_parts_that_out_screen(self):
+        op = repo_data.operating_inputs()
+        targets = repo_data.pricing_targets(op)
+        priced_names = {c.name for c in repo_data.cpu_inputs() if c.priceable}
+        winner = repo_data.solve_psi().winner
+        for t in targets:
+            assert t.name not in priced_names
+            assert t.points_per_watt > winner.points_per_watt
+            assert t.beats_winner_by > 0
+
+
+class TestImporterIsSafe:
+    """Bulk import must never silently overwrite researched values, or the cheap path
+    (a spreadsheet) would degrade the expensive one (a sourced figure)."""
+
+    def test_blank_detection(self):
+        import import_catalog
+
+        for v in ("", "  ", "-", "n/a", "TODO: unverified", "todo"):
+            assert import_catalog.blank(v)
+        for v in ("0", "192", "AMD"):
+            assert not import_catalog.blank(v)
+
+    def test_dry_run_leaves_the_file_untouched(self, tmp_path):
+        import import_catalog
+
+        target = repo_data.DATA / "cpu_specs.yaml"
+        before = target.read_bytes()
+        csv_path = tmp_path / "cpus.csv"
+        csv_path.write_text(
+            ",".join(import_catalog.SCHEMAS["cpus"]["columns"]) + "\n"
+            "test-part,Test Part,TestCo,64,TestArch,128,300,250,,1000,,,,,test,TODO\n",
+            encoding="utf-8",
+        )
+        rows = import_catalog.read_csv(csv_path, "cpus")
+        assert len(rows) == 1
+        import_catalog.merge("cpus", rows, dry_run=True)
+        assert target.read_bytes() == before
+
+    def test_rows_missing_required_fields_are_skipped(self, tmp_path):
+        import import_catalog
+
+        csv_path = tmp_path / "cpus.csv"
+        csv_path.write_text(
+            ",".join(import_catalog.SCHEMAS["cpus"]["columns"]) + "\n"
+            ",No Id,TestCo,64,,,300,,,,,,,,,\n",
+            encoding="utf-8",
+        )
+        assert import_catalog.read_csv(csv_path, "cpus") == []
+
+
 class TestNothingIsInvented:
     def test_unplaceable_candidates_are_named_not_guessed(self):
         r = tokens()

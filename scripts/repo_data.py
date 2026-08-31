@@ -28,9 +28,11 @@ from models.hardware_psi import (  # noqa: E402
     CpuInputs,
     Evaluation,
     OperatingInputs,
+    Screening,
     cpu_price_to_match_psi,
     evaluate,
     rent_psi,
+    screen,
 )
 
 DATA = ROOT / "data"
@@ -485,22 +487,129 @@ def non_cpu_capex(usd_per_gb: float | None = None) -> float:
     return bom + memory_cost_usd(usd_per_gb)
 
 
-def cpu_inputs(usd_per_gb: float | None = None) -> list[CpuInputs]:
+def _num(value: Any) -> float | None:
+    """A catalog figure that has not been researched yet. Missing, null, or an explicit
+    TODO marker all mean the same thing: not known, and never to be guessed."""
+    if value is None:
+        return None
+    if isinstance(value, str):
+        return None if value.strip().upper().startswith("TODO") else float(value)
+    return float(value)
+
+
+def _default_phi(candidate: dict[str, Any]) -> tuple[float, str]:
+    """Derate for a part nobody has measured at its run cTDP. A catalog entry run at stock
+    is not derated at all, which is the honest default; anything else would be inventing a
+    measurement."""
+    phi = candidate.get("phi")
+    if phi is not None and _num(phi.get("value")) is not None:
+        return float(phi["value"]), phi.get("confidence", "TODO")
+    return 1.0, "DEFINITION"
+
+
+def cpu_inputs(usd_per_gb: float | None = None, priced_only: bool = False) -> list[CpuInputs]:
+    """Every candidate in the catalog, priced or not. Callers that need a price (the Psi
+    ranking) filter with `priced_only`; callers that only need specs (screening, coverage)
+    take the whole field."""
     spec = load("cpu_specs")
     sigma = float(spec["calibration"]["sigma_1p_scaling"]["value"])
     rest = non_cpu_capex(usd_per_gb)
-    return [
-        CpuInputs(
+    out = []
+    for c in spec["candidates"]:
+        phi_value, _conf = _default_phi(c)
+        rate = c.get("specrate_2p") or {}
+        ctdp = _num(c.get("run_ctdp_w")) or _num(c.get("ctdp_floor_w")) or _num(c.get("tdp_default_w"))
+        if ctdp is None:
+            continue  # no power figure at all: cannot be placed on either axis
+        cpu = CpuInputs(
             name=c["name"],
-            specrate_2p=float(c["specrate_2p"]["value_used"]),
+            specrate_2p=_num(rate.get("value_used")),
             sigma=sigma,
-            phi=float(c["phi"]["value"]),
-            ctdp_w=float(c["run_ctdp_w"]),
-            cpu_price_usd=float(c["price_street_usd"]),
+            phi=phi_value,
+            ctdp_w=ctdp,
+            cpu_price_usd=_num(c.get("price_street_usd")),
             non_cpu_capex_usd=rest,
         )
-        for c in spec["candidates"]
-    ]
+        if priced_only and not cpu.priceable:
+            continue
+        out.append(cpu)
+    return out
+
+
+@dataclass(frozen=True)
+class Coverage:
+    """How much of the field the answer actually saw. A frontier drawn from four
+    hand-picked parts is an artifact of the picking; this is how a reader tells the
+    difference."""
+
+    total: int
+    screenable: int
+    priced: int
+    unplaceable: list[str]
+
+    @property
+    def priced_share(self) -> float:
+        return self.priced / self.total if self.total else 0.0
+
+
+def cpu_coverage() -> Coverage:
+    cpus = cpu_inputs()
+    catalog = load("cpu_specs")["candidates"]
+    named = {c["name"] for c in catalog}
+    placed = {c.name for c in cpus}
+    unplaceable = sorted(named - placed)
+    unplaceable += sorted(c.name for c in cpus if not c.screenable)
+    return Coverage(
+        total=len(catalog),
+        screenable=sum(1 for c in cpus if c.screenable),
+        priced=sum(1 for c in cpus if c.priceable),
+        unplaceable=sorted(set(unplaceable)),
+    )
+
+
+def solve_screening(op: OperatingInputs | None = None) -> list[Screening]:
+    """Perf-per-watt for every candidate with a published work rate, priced or not."""
+    op = op or operating_inputs()
+    return sorted(
+        (screen(c, op) for c in cpu_inputs() if c.screenable),
+        key=lambda s: s.points_per_watt,
+        reverse=True,
+    )
+
+
+@dataclass(frozen=True)
+class PricingTarget:
+    """An unpriced candidate that out-screens the current value winner. These are the only
+    unpriced parts whose price could change the answer, so this is where research effort
+    should go."""
+
+    name: str
+    points_per_watt: float
+    work_rate: float
+    beats_winner_by: float
+
+
+def pricing_targets(op: OperatingInputs | None = None) -> list[PricingTarget]:
+    op = op or operating_inputs()
+    priced = [c for c in cpu_inputs() if c.priceable]
+    if not priced:
+        return []
+    winner = min((evaluate(c, op) for c in priced), key=lambda e: e.psi)
+    out = []
+    for c in cpu_inputs():
+        if c.priceable or not c.screenable:
+            continue
+        s = screen(c, op)
+        if s.points_per_watt > winner.points_per_watt:
+            out.append(
+                PricingTarget(
+                    name=c.name,
+                    points_per_watt=s.points_per_watt,
+                    work_rate=s.work_rate,
+                    beats_winner_by=s.points_per_watt / winner.points_per_watt - 1.0,
+                )
+            )
+    return sorted(out, key=lambda t: t.points_per_watt, reverse=True)
 
 
 @dataclass(frozen=True)
@@ -511,8 +620,17 @@ class PsiSolution:
 
 
 def solve_psi(op: OperatingInputs | None = None, usd_per_gb: float | None = None) -> PsiSolution:
+    """Ranks only the candidates someone has priced. Unpriced catalog entries are not
+    silently dropped: coverage reports them and pricing_targets() names the ones whose
+    price could actually change this ranking."""
     op = op or operating_inputs()
-    evs = [evaluate(c, op) for c in cpu_inputs(usd_per_gb)]
+    priced = cpu_inputs(usd_per_gb, priced_only=True)
+    if not priced:
+        raise ValueError(
+            "no CPU candidate has both a work rate and a price; "
+            "run scripts/refresh_plan.py to see what is missing"
+        )
+    evs = [evaluate(c, op) for c in priced]
     return PsiSolution(
         evaluations=evs,
         winner=min(evs, key=lambda e: e.psi),
