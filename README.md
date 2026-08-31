@@ -34,6 +34,7 @@ python scripts/razor.py --min-score 60                  # frontier only: watch t
 python scripts/razor.py --out-mtok-yr 3150              # 10x the burn: the rate bar moves with it
 python scripts/razor.py --budget-monthly 20             # spend cap
 python scripts/razor.py --max-watts 500                 # power cap: flips the compute pick
+python scripts/razor.py --min-memory-gb 384             # memory floor: shaves the narrow sockets
 python scripts/razor.py --compute-objective efficiency  # optimize pts/W instead of $/work
 python scripts/razor.py --tokens-objective smartest     # buy capability, not price
 ```
@@ -46,6 +47,7 @@ python scripts/razor.py --tokens-objective smartest     # buy capability, not pr
 | `--tokens-objective` | `cheapest` | or `smartest` |
 | `--max-watts` | none | wall-watt cap |
 | `--min-points` | 0 | work floor, 1P SPECrate points |
+| `--min-memory-gb` | 0 | memory floor: what the socket must hold at one DIMM per channel |
 | `--compute-objective` | `value` | or `efficiency` |
 
 The two compute objectives optimize different formulas over the same inputs:
