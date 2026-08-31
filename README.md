@@ -257,7 +257,7 @@ spreadsheets/  the original interactive Psi workbook (kept in parity by test)
   burn, watt cap, work floor) and picks the objective; the tool shaves what fails and
   plots what survives to `out/`. Added `scripts/refresh_plan.py` and the `/refresh-data`
   command so keeping the data current is the only judgment call left in the loop.
-- **2026-08-31 — CONCLUSION REVERSED. F2 "there is no midrange tier" is false.** The
+- **2026-08-31. CONCLUSION REVERSED. F2 "there is no midrange tier" is false.** The
   model catalog went from 4 to 97 and the capability index from 7 entries to 49, of which
   32 now carry a cost per task. The Pareto frontier has **7 points, not 2**: capability is
   bought in increments, and there is a model scoring in the low 50s at roughly half the
@@ -291,7 +291,7 @@ spreadsheets/  the original interactive Psi workbook (kept in parity by test)
   rival, the frontier baseline, the MoE exemplar, and the derate footnote are all solved
   now), and converted incumbent-pinning tests into property tests plus one explicit
   `INCUMBENTS` map that fails loudly when a winner is displaced.
-- **2026-08-31 — CPU survey: 4 candidates to 124, and the incumbent held.** The last
+- **2026-08-31. CPU survey: 4 candidates to 124, and the incumbent held.** The last
   unsurveyed set is closed. Parsed all 13,179 published SPEC CPU2017 integer-rate results
   and kept the 2,876 single-chip ones, then cross-matched against AMD, Intel and Ampere
   spec tables. The field went from one vendor on one socket to three vendors on six:
