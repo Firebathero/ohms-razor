@@ -6,11 +6,20 @@ counter-reading is that it is a components story: DRAM supply pushing the market
 readings predict different futures, so the repo presents both.
 
 <!-- gen:apple_lineup -->
-| Machine | Price | Max unified memory | Bandwidth |
-|---|---:|---:|---:|
-| Mac mini M6 | $899 | 32GB | 170 GB/s |
-| Mac mini M5 Pro | $1,699 | 64GB | 307 GB/s |
-| Mac Studio M5 Ultra | $15,000 (ESTIMATE) | 512GB | 1200 GB/s |
+| Machine | Price | Max unified memory | Bandwidth | Status |
+|---|---:|---:|---:|---|
+| Mac Studio M5 Ultra 512GB | TODO: unverified | 512GB | 1200 GB/s | announced |
+| Mac Studio M3 Ultra 512GB | $9,499 | 512GB | 819 GB/s | prior gen |
+| Mac Studio M5 Ultra 256GB | $18,299 | 256GB | 1200 GB/s | current |
+| Mac Studio M5 Max | $4,499 (est.) | 128GB | 614 GB/s | current |
+| Mac Studio M4 Max | $3,699 | 128GB | 546 GB/s | prior gen |
+| MacBook Pro 16 M5 Max | $10,149 | 128GB | 614 GB/s | current |
+| MacBook Pro 16 M4 Max | $4,999 | 128GB | 546 GB/s | prior gen |
+| Mac mini M5 Pro | $1,699 | 64GB | 307 GB/s | current |
+| Mac mini M4 Pro | TODO: unverified | 64GB | 273 GB/s | prior gen |
+| MacBook Pro 14 M5 Pro | $3,699 (est.) | 64GB | 307 GB/s | current |
+| Mac mini M6 | $899 | 32GB | 170 GB/s | current |
+| MacBook Pro 14 M5 | TODO: unverified | 32GB | 153 GB/s | current |
 <!-- /gen:apple_lineup -->
 
 ## The supply reading

@@ -327,15 +327,24 @@ def solve_local_bar() -> tuple[float, list[LocalBarRow]]:
                     )
                 )
                 continue
-            p = params[t["model"]]
-            bytes_pp = qb[t["quant"]]
-            fits = fits_in_memory(float(p["total_params_b"]), bytes_pp, machine["memory_gb_max"])
+            # A measured figure for a model whose weight geometry nobody has recorded is
+            # still a real measurement. Report it against the bar; only the capacity check
+            # and the Model 2 bound need the geometry, and both are skipped rather than
+            # guessed. This is what lets a survey add throughput data faster than someone
+            # can transcribe parameter counts.
+            p = params.get(t["model"])
+            bytes_pp = qb.get(t["quant"])
+            tok_s = float(t["tok_s"])
+            fits = (
+                fits_in_memory(float(p["total_params_b"]), bytes_pp, machine["memory_gb_max"])
+                if p and bytes_pp
+                else True  # unknown geometry: it ran, so it fit on the machine it ran on
+            )
             bound = (
                 decode_rate_upper_bound(float(bw_eff), float(p["active_params_b"]), bytes_pp)
-                if bw_eff
+                if bw_eff and p and bytes_pp
                 else None
             )
-            tok_s = float(t["tok_s"])
             passes = fits and tok_s >= bar
             if not fits:
                 verdict = "fails on capacity"

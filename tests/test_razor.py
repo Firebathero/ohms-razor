@@ -55,12 +55,22 @@ class TestThresholdsBind:
         big = tokens(out_mtok=3150.0)
         assert big.required_rate == pytest.approx(small.required_rate * 100, rel=1e-9)
 
-    def test_local_box_fails_a_workload_it_cannot_sustain(self):
-        """Ten times the reference burn puts the measured local rate under the bar."""
-        r = tokens(min_score=0, out_mtok=3150.0)
-        local = [c for c in r.candidates if c.kind == "local"]
-        assert local and all(not c.feasible for c in local)
-        assert any("tok/s" in c.excluded_by for c in local)
+    def test_raising_the_burn_shaves_local_boxes_on_rate(self):
+        """The rate bar has to actually bind on hardware. At ten times the reference burn
+        the bar rises to ~100 tok/s, which the unified-memory boxes cannot sustain. A
+        high-bandwidth discrete GPU may still clear it, and that is a finding, not a bug:
+        what this asserts is that the constraint bites, not which machines survive it."""
+        base = tokens(min_score=0)
+        heavy = tokens(min_score=0, out_mtok=3150.0, in_mtok=6300.0)
+        assert heavy.required_rate > base.required_rate * 9
+
+        local_base = [c for c in base.candidates if c.kind == "local"]
+        local_heavy = [c for c in heavy.candidates if c.kind == "local"]
+        assert local_base and local_heavy
+        shaved_base = sum(1 for c in local_base if not c.feasible)
+        shaved_heavy = sum(1 for c in local_heavy if not c.feasible)
+        assert shaved_heavy > shaved_base, "a 10x workload shaved no additional local box"
+        assert any("tok/s" in c.excluded_by for c in local_heavy)
 
     def test_cost_scales_with_the_workload(self):
         base = tokens(min_score=0)
@@ -191,9 +201,14 @@ class TestImporterIsSafe:
 
 class TestNothingIsInvented:
     def test_unplaceable_candidates_are_named_not_guessed(self):
+        """Every candidate the tool cannot place must say which field is missing. Silence
+        would let a gap look like a judgment."""
         r = tokens()
         for note in r.unplaceable:
-            assert "no AA score in data" in note or "not in data" in note
+            assert "(" in note and note.rstrip().endswith(")"), f"no stated reason: {note}"
+            reason = note[note.index("(") + 1: -1]
+            assert reason.strip(), f"empty reason: {note}"
+            assert "no " in reason or "not in data" in reason, f"reason is not a stated gap: {note}"
 
     def test_every_excluded_candidate_says_why(self):
         r = tokens(min_score=60, budget=100.0)

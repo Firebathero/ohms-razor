@@ -1,151 +1,851 @@
-# Local inference candidates: unified-memory machines a person would actually put in a
-# closet. Bandwidth is the number that matters; token generation is memory-bandwidth-bound.
-# Measured throughput always takes precedence over the Model 2 upper-bound estimate.
-# Freshness window: 30 days on prices; measured figures keep their tags.
-
-# WHAT THIS LIST IS SUPPOSED TO COVER.
 survey:
-  question: >-
-    Which always-on machines could plausibly sustain the required token rate locally at a
-    cost per token competitive with hosted inference?
+  question: Which always-on machines could plausibly sustain the required token rate locally at a cost
+    per token competitive with hosted inference?
   inclusion_criteria:
-    - enough memory to hold a model that clears the capability bar, with usable context
-    - a published or measured memory bandwidth figure
-    - idle power low enough to leave running 24/7
-    - buyable as a complete machine by one person
+  - enough memory to hold a model that clears the capability bar, with usable context
+  - a published or measured memory bandwidth figure
+  - idle power low enough to leave running 24/7
+  - buyable as a complete machine by one person
   out_of_scope:
-    - multi-GPU workstations and rack servers with discrete accelerators (different
-      economics; if this becomes interesting it needs its own model, not a row here)
-    - clusters (the reference workload is one always-on box)
+  - multi-GPU workstations and rack servers with discrete accelerators (different economics; if this becomes
+    interesting it needs its own model, not a row here)
+  - clusters (the reference workload is one always-on box)
   where_to_look:
-    - Apple silicon lineup at each refresh (memory ceilings move, and they have moved down)
-    - AMD Strix Halo class mini-PCs and successors from GMKtec, Beelink, Minisforum
-    - NVIDIA DGX Spark class desk machines and any unified-memory ARM equivalent
-    - llama.cpp and vLLM benchmark threads for measured tok/s on new hardware
-  last_surveyed: null
+  - Apple silicon lineup at each refresh (memory ceilings move, and they have moved down)
+  - AMD Strix Halo class mini-PCs and successors from GMKtec, Beelink, Minisforum
+  - NVIDIA DGX Spark class desk machines and any unified-memory ARM equivalent
+  - llama.cpp and vLLM benchmark threads for measured tok/s on new hardware
+  last_surveyed: &id001 2026-08-31
   survey_interval_days: 90
-  confidence: TODO
-  note: >-
-    NEVER SURVEYED. Four machines inherited from the handoff: three Apple, one Strix Halo.
-    That is a narrow slice of what exists. The finding that only one configuration clears
-    the throughput bar is a statement about these four, and a new high-bandwidth machine is
-    exactly the kind of entrant that would change it.
-  considered_and_excluded: []   # nothing recorded; see note
-
+  confidence: CURRENT
+  note: 'Surveyed 2026-08-31 by live web search across Apple silicon (desktop and laptop), AMD Strix Halo
+    mini-PCs, NVIDIA GB10 desk machines, consumer GPUs, and single-unit workstation/datacenter GPUs. Grew
+    the set from 4 to 37. Most entries carry specs and a price; measured throughput exists for a minority
+    and is never estimated where absent. Two findings worth carrying: Apple replaced its entire desktop
+    lineup on 2026-08-25 so no M5/M6 machine has measured throughput yet, and several content-farm sites
+    publish fabricated tok/s figures for unreleased Apple silicon which were excluded.'
+  considered_and_excluded:
+  - candidate: Ampere-based ARM AI workstations
+    reason: no buyable single-unit desk SKU with citable price, bandwidth, and benchmark data found
+  - candidate: Qualcomm Snapdragon X2 Elite Extreme PCs
+    reason: 'same: no dedicated desk appliance with the figures needed to place it'
+  - candidate: RTX 4090 48GB modded cards
+    reason: gray-market, not an NVIDIA SKU; bandwidth unverified and the one throughput figure found was
+      unsourced
+  - candidate: Multi-GPU and rack workstations
+    reason: 'out of scope per the survey block: different economics, would need its own model'
 machines:
-  - id: mac-mini-m6
-    name: Mac mini M6
-    price_usd: 899
-    price_confidence: CONFIRMED
-    memory_gb_max: 32
-    bandwidth_nominal_gb_s: 170
-    bandwidth_effective_gb_s: null   # TODO: unverified
-    date: 2026-08-25
-    source: sources#apple-lineup
-    notes: >-
-      Cannot hold a 70B-class model at usable quantization and context. Fails on capacity
-      before throughput is even a question. Memory ceiling is down from the M4 Pro era; see
-      the supply-vs-demand analysis.
-
-  - id: mac-mini-m5-pro
-    name: Mac mini M5 Pro
-    price_usd: 1699
-    price_confidence: CONFIRMED
-    price_as_configured_usd: 2700
-    price_as_configured_confidence: VOLATILE
-    price_as_configured_note: approximately, at the 64GB ceiling
-    memory_gb_max: 64
-    bandwidth_nominal_gb_s: 307
-    bandwidth_effective_gb_s: null   # TODO: unverified
-    date: 2026-08-25
-    source: sources#apple-lineup
-    throughput:
-      - model: dense-70b
-        quant: q4
-        tok_s: 5.5
-        tok_s_range: [5, 6]
-        confidence: ESTIMATE
-        note: handoff estimate from bandwidth arithmetic, not a bench run
-
-  - id: gmktec-evo-x2
-    name: GMKtec EVO-X2 (Strix Halo)
-    price_usd: 1499
-    price_confidence: VOLATILE
-    memory_gb_max: 128
-    bandwidth_nominal_gb_s: 256
-    bandwidth_effective_gb_s: 215
-    bandwidth_effective_confidence: MEASURED
+- id: mac-mini-m6
+  name: Mac mini M6
+  price_usd: 899
+  price_confidence: CONFIRMED
+  memory_gb_max: 32
+  bandwidth_nominal_gb_s: 170
+  bandwidth_effective_gb_s: null
+  date: 2026-08-25
+  source: sources#apple-lineup
+  notes: Cannot hold a 70B-class model at usable quantization and context. Fails on capacity before throughput
+    is even a question. Memory ceiling is down from the M4 Pro era; see the supply-vs-demand analysis.
+  vendor: Apple
+  form_factor: complete
+  load_w: 155.0
+- id: mac-mini-m5-pro
+  name: Mac mini M5 Pro
+  price_usd: 1699
+  price_confidence: CONFIRMED
+  price_as_configured_usd: 2899
+  price_as_configured_confidence: VOLATILE
+  price_as_configured_note: at the 64GB ceiling, derived from base plus published config deltas
+  memory_gb_max: 64
+  bandwidth_nominal_gb_s: 307
+  bandwidth_effective_gb_s: null
+  date: 2026-08-25
+  source: sources#apple-lineup
+  throughput:
+  - model: dense-70b
+    quant: q4
+    tok_s: 5.5
+    tok_s_range:
+    - 5
+    - 6
+    confidence: ESTIMATE
+    note: handoff estimate from bandwidth arithmetic, not a bench run
+  vendor: Apple
+  form_factor: complete
+  load_w: 155.0
+  notes: Price derived from base plus config deltas. Supersedes the M4 Pro mini.
+  history:
+  - field: price_as_configured_usd
+    value: 2700
+    superseded: *id001
+    confidence: VOLATILE
+    note: handoff approximation at the 64GB ceiling; a dated derivation now puts it at $2,899.
+- id: gmktec-evo-x2
+  name: GMKtec EVO-X2 (Strix Halo)
+  price_usd: 2199
+  price_confidence: VOLATILE
+  memory_gb_max: 128
+  bandwidth_nominal_gb_s: 256
+  bandwidth_effective_gb_s: 215
+  bandwidth_effective_confidence: MEASURED
+  date: 2026-08-29
+  source: sources#strix-halo
+  throughput:
+  - model: dense-70b
+    quant: q4
+    tok_s: 5
+    confidence: ESTIMATE
+    note: handoff estimate; fails the sustained-rate bar
+  - model: gpt-oss-120b
+    quant: mxfp4
+    tok_s: 31
+    confidence: MEASURED
     date: 2026-08-29
+    note: handoff figure. A later ROCm measurement puts the same model and quant at 46.05 tok/s on this
+      box; both are recorded because the gap is a backend difference, not an error, and the repo does
+      not pick between measurements.
     source: sources#strix-halo
-    throughput:
-      - model: dense-70b
-        quant: q4
-        tok_s: 5
-        confidence: ESTIMATE
-        note: handoff estimate; fails the sustained-rate bar
-      - model: gpt-oss-120b
-        quant: mxfp4
-        tok_s: 31
-        confidence: MEASURED
-        date: 2026-08-29
-        note: the one local configuration in this set that clears the bar
-
-  - id: mac-studio-m5-ultra
-    name: Mac Studio M5 Ultra
-    price_usd: 15000
-    price_confidence: ESTIMATE   # handoff weakness 5: the machine exists, the price was a guess
-    price_note: "TODO: unverified. 512GB configuration; price not confirmed anywhere."
-    memory_gb_max: 512
-    bandwidth_nominal_gb_s: 1200
-    bandwidth_effective_gb_s: null   # TODO: unverified
-    date: 2026-08-25
-    source: sources#apple-lineup
-    throughput:
-      - model: moe-671b
-        quant: q4
-        tok_s: 32
-        tok_s_range: [25, 40]
-        confidence: ESTIMATE
-        note: handoff estimate; passes the bar if real
-
-# Model weight geometry used by the throughput and MoE models. Shared and per-expert
-# splits are derived at solve time from total/active/expert counts; they are not stored.
+  - model: gpt-oss-120b
+    quant: mxfp4
+    tok_s: 46.05
+    confidence: MEASURED
+    date: *id001
+    backend: ROCm
+    source: https://nishtahir.com/gmktec-evo-x2-ryzen-ai-max-395-benchmarks/
+    note: ROCm backend. 48% faster than the handoff's figure for the same model and quant.
+  - model: llama-3.3-70b
+    quant: q6
+    tok_s: 3.75
+    confidence: MEASURED
+    date: &id002 2026-08-31
+    source: https://www.servethehome.com/gmktec-evo-x2-review-an-amd-ryzen-ai-max-395-powerhouse/4/
+    note: Full offload. Range 3.7-3.8. A dense 70B is hopeless on this bus.
+  - model: gpt-oss-20b
+    quant: mxfp4
+    tok_s: 65.73
+    confidence: MEASURED
+    date: *id002
+    source: https://nishtahir.com/gmktec-evo-x2-ryzen-ai-max-395-benchmarks/
+  - model: qwen3-coder-30b
+    quant: q8
+    tok_s: 50.16
+    confidence: MEASURED
+    date: *id002
+    source: https://github.com/pablo-ross/strix-halo-gmktec-evo-x2/blob/main/QWEN3-CODER-30B_BENCHMARK.md
+    note: ROCm.
+  vendor: GMKtec
+  form_factor: complete
+  idle_w: 8.0
+  load_w: 160.0
+  notes: Ryzen AI Max+ 395. Vendor direct price 2026-08-31. Third-party listings spread to 3000 during
+    the DRAM squeeze.
+  history:
+  - field: price_usd
+    value: 1499
+    superseded: *id001
+    confidence: VOLATILE
+    note: handoff figure. Vendor-direct price is now $2,199, a 47% rise attributed to the 2026 DRAM squeeze.
+      Third-party listings for the same box spread as high as $3,000.
+  price_date: *id001
+- id: mac-studio-m5-ultra-512
+  name: Mac Studio M5 Ultra 512GB
+  vendor: Apple
+  form_factor: complete
+  memory_gb_max: 512
+  bandwidth_nominal_gb_s: 1200.0
+  load_w: 480.0
+  notes: Announced 2026-08-25 ships late Oct 2026. Not in hand anywhere so no measured tok/s exists. 480W
+    is the max-continuous-power spec not a measured load figure.
+  date: &id003 2026-08-31
+  price_confidence: CONFIRMED
+  source: https://www.apple.com/newsroom/2026/08/apple-introduces-new-mac-studio-with-m5-max-and-m5-ultra/
+  throughput:
+  - model: moe-671b
+    quant: q4
+    tok_s: 32
+    tok_s_range:
+    - 25
+    - 40
+    confidence: ESTIMATE
+    note: handoff estimate; passes the bar if real Inherited from the superseded placeholder entry; the
+      machine had not shipped when this was estimated.
+- id: mac-studio-m5-ultra-256
+  name: Mac Studio M5 Ultra 256GB
+  vendor: Apple
+  form_factor: complete
+  memory_gb_max: 256
+  bandwidth_nominal_gb_s: 1200.0
+  price_usd: 18299.0
+  load_w: 480.0
+  notes: Top orderable config with a confirmed price as of 2026-08-25.
+  date: *id003
+  price_confidence: CONFIRMED
+  source: https://appleinsider.com/articles/26/08/25/you-can-spend-18299-on-a-mac-studio-today-or-more-in-october
+- id: mac-studio-m5-max
+  name: Mac Studio M5 Max
+  vendor: Apple
+  form_factor: complete
+  memory_gb_max: 128
+  bandwidth_nominal_gb_s: 614.0
+  price_usd: 4499.0
+  load_w: 480.0
+  notes: Price derived from base plus published config deltas not a single quoted SKU price.
+  date: *id003
+  price_confidence: ESTIMATE
+  source: https://www.apple.com/mac-studio/specs/
+- id: mac-studio-m3-ultra
+  name: Mac Studio M3 Ultra 512GB
+  vendor: Apple
+  form_factor: complete
+  memory_gb_max: 512
+  bandwidth_nominal_gb_s: 819.0
+  price_usd: 9499.0
+  idle_w: 9.0
+  load_w: 270.0
+  notes: Superseded 2026-08-25 resale only. Best-documented Apple machine for measured local inference.
+  date: *id003
+  price_confidence: VOLATILE
+  source: https://www.tomshardware.com/tech-industry/apple-pulls-512-mac-studio-upgrade-option
+  throughput:
+  - model: deepseek-r1-671b
+    quant: q4
+    tok_s: 17.5
+    confidence: MEASURED
+    date: *id002
+    source: https://www.macrumors.com/2025/03/17/apples-m3-ultra-runs-deepseek-r1-efficiently/
+    note: Dave2D. 17-18 tok/s at under 200W at the wall.
+  - model: deepseek-r1-0528
+    quant: mlx4
+    tok_s: 11.15
+    confidence: MEASURED
+    date: *id002
+    source: https://dev.to/someoddcodeguy/running-deepseek-r1-0528-q4km-and-mlx-4-bit-on-a-mac-studio-m3-le4
+    note: MLX 4-bit. 189.46 tok/s prompt processing.
+  - model: llama-3.1-405b
+    quant: q6
+    tok_s: 1.25
+    confidence: MEASURED
+    date: *id002
+    source: https://dev.to/someoddcodeguy/running-llama-31-405b-q6-and-command-a-111b-q8-on-m3-ultra-mac-studio-3mc6
+    note: 22.54 tok/s prompt processing. Far under any useful sustained rate.
+  - model: command-a-111b
+    quant: q8
+    tok_s: 3.24
+    confidence: MEASURED
+    date: *id002
+    source: https://dev.to/someoddcodeguy/running-llama-31-405b-q6-and-command-a-111b-q8-on-m3-ultra-mac-studio-3mc6
+    note: 82.86 tok/s prompt processing.
+- id: mac-studio-m4-max
+  name: Mac Studio M4 Max
+  vendor: Apple
+  form_factor: complete
+  memory_gb_max: 128
+  bandwidth_nominal_gb_s: 546.0
+  price_usd: 3699.0
+  idle_w: 6.0
+  load_w: 145.0
+  notes: Discontinued at Apple 2026-03. Idle and load measured on a 36GB unit not the 128GB SKU.
+  date: *id003
+  price_confidence: VOLATILE
+  source: https://www.apple.com/mac-studio/specs/
+  throughput:
+  - model: llama-2-7b
+    quant: q4
+    tok_s: 69.95
+    confidence: MEASURED
+    date: *id002
+    source: https://github.com/ggml-org/llama.cpp/discussions/4167
+    note: Measured on a 36GB 32-core-GPU unit not the 128GB SKU.
+- id: mac-mini-m4-pro
+  name: Mac mini M4 Pro
+  vendor: Apple
+  form_factor: complete
+  memory_gb_max: 64
+  bandwidth_nominal_gb_s: 273.0
+  idle_w: 5.0
+  load_w: 140.0
+  notes: Discontinued at Apple 2026-03. Memory ceiling was cut from 64GB to 48GB mid-cycle before discontinuation.
+  date: *id003
+  price_confidence: CONFIRMED
+  source: https://www.apple.com/newsroom/2024/10/apple-introduces-m4-pro-and-m4-max/
+- id: macbook-pro-14-m5
+  name: MacBook Pro 14 M5
+  vendor: Apple
+  form_factor: complete
+  memory_gb_max: 32
+  bandwidth_nominal_gb_s: 153.0
+  notes: Laptop. Has measured llama.cpp figures.
+  date: *id003
+  price_confidence: CONFIRMED
+  source: https://www.apple.com/macbook-pro/specs/
+  throughput:
+  - model: llama-7b
+    quant: q4
+    tok_s: 30.3
+    confidence: MEASURED
+    date: *id002
+    source: https://github.com/ggml-org/llama.cpp/discussions/4167
+    note: Range 29.62-31.02 without the Neural Accelerator. F16 was 9.43.
+- id: macbook-pro-14-m5-pro
+  name: MacBook Pro 14 M5 Pro
+  vendor: Apple
+  form_factor: complete
+  memory_gb_max: 64
+  bandwidth_nominal_gb_s: 307.0
+  price_usd: 3699.0
+  notes: List inferred from an observed sale price not directly confirmed.
+  date: *id003
+  price_confidence: ESTIMATE
+  source: https://www.macworld.com/article/2942089/macbook-pro-m5-pro-max-release-specs-price.html
+- id: macbook-pro-16-m5-max
+  name: MacBook Pro 16 M5 Max
+  vendor: Apple
+  form_factor: complete
+  memory_gb_max: 128
+  bandwidth_nominal_gb_s: 614.0
+  price_usd: 10149.0
+  idle_w: 5.68
+  load_w: 150.3
+  notes: Price is the fully maxed config including 8TB and nano-texture. Power measured on a 48GB unit.
+  date: *id003
+  price_confidence: CONFIRMED
+  source: https://9to5mac.com/2026/06/29/a-maxed-out-16-inch-macbook-pro-now-has-a-5-figure-price-tag/
+- id: macbook-pro-16-m4-max
+  name: MacBook Pro 16 M4 Max
+  vendor: Apple
+  form_factor: complete
+  memory_gb_max: 128
+  bandwidth_nominal_gb_s: 546.0
+  price_usd: 4999.0
+  idle_w: 7.3
+  notes: Discontinued at Apple 2026-03. Price is the original Apple list for 128GB/1TB.
+  date: *id003
+  price_confidence: VOLATILE
+  source: https://www.apple.com/newsroom/2024/10/apple-introduces-m4-pro-and-m4-max/
+  throughput:
+  - model: llama-7b
+    quant: q4
+    tok_s: 69.95
+    confidence: MEASURED
+    date: *id002
+    source: https://github.com/ggml-org/llama.cpp/discussions/4167
+    note: Measured on a 36GB unit not the 128GB SKU. Q8_0 43.87 F16 24.29.
+- id: framework-desktop
+  name: Framework Desktop
+  vendor: Framework
+  form_factor: complete
+  memory_gb_max: 128
+  bandwidth_nominal_gb_s: 256.0
+  bandwidth_effective_gb_s: 212.0
+  price_usd: 2851.0
+  idle_w: 12.0
+  load_w: 104.0
+  notes: Ryzen AI Max+ 395. Effective bandwidth measured with rocm_bandwidth_test against a 256 GB/s spec
+    bus.
+  date: *id003
+  price_confidence: VOLATILE
+  source: https://liliputing.com/more-ryzen-ai-max-395-mini-pcs-with-128gb-are-now-available-if-you-can-afford-one/
+  throughput:
+  - model: qwen3-30b-a3b
+    quant: q4
+    tok_s: 85.11
+    confidence: MEASURED
+    date: *id002
+    source: https://llm-tracker.info/AMD-Strix-Halo-(Ryzen-AI-Max+-395)-GPU-Performance
+    note: Vulkan RADV backend.
+  - model: llama-4-scout-109b
+    quant: q4
+    tok_s: 20.23
+    confidence: MEASURED
+    date: *id002
+    source: https://llm-tracker.info/AMD-Strix-Halo-(Ryzen-AI-Max+-395)-GPU-Performance
+    note: Vulkan. Generic Strix Halo gfx1151 platform figure.
+  - model: qwen3.5-122b-a10b
+    quant: q6
+    tok_s: 19.17
+    confidence: MEASURED
+    date: *id002
+    source: https://github.com/ggml-org/llama.cpp/discussions/23659
+    note: ROCm 7.2.3. Rises to 26.86 with MTP speculative decoding.
+- id: framework-desktop-pro-495
+  name: Framework Desktop Pro 495
+  vendor: Framework
+  form_factor: complete
+  memory_gb_max: 192
+  bandwidth_nominal_gb_s: 273.0
+  notes: Teased not orderable. Bandwidth figure is a vendor claim.
+  date: *id003
+  price_confidence: TODO
+  source: https://www.techpowerup.com/350997/framework-teases-desktop-with-ryzen-ai-max-pro-495-and-192gb-memory
+- id: beelink-gtr9-pro
+  name: Beelink GTR9 Pro
+  vendor: Beelink
+  form_factor: complete
+  memory_gb_max: 128
+  bandwidth_nominal_gb_s: 256.0
+  bandwidth_effective_gb_s: 215.0
+  price_usd: 1985.0
+  idle_w: 16.0
+  load_w: 128.0
+  notes: Ryzen AI Max+ 395. Pre-order price. A March 2026 roundup listed 2999 so treat the spread as real.
+  date: *id003
+  price_confidence: VOLATILE
+  source: https://www.amazon.com/Beelink-GTR9-Crucial-Computer-DeepSeek/dp/B0FPQQYWQ1
+- id: minisforum-ms-s1-max
+  name: Minisforum MS-S1 Max
+  vendor: Minisforum
+  form_factor: complete
+  memory_gb_max: 128
+  bandwidth_nominal_gb_s: 256.0
+  bandwidth_effective_gb_s: 215.0
+  price_usd: 2299.0
+  load_w: 160.0
+  notes: Ryzen AI Max+ 395. Eight measured models published.
+  date: *id003
+  price_confidence: VOLATILE
+  source: https://videocardz.com/newz/ryzen-ai-max-395-powered-minisforum-ms-s1-max-debuts-with-2299-premium-price-tag
+  throughput:
+  - model: qwen3.5-35b
+    quant: q4
+    tok_s: 43.2
+    confidence: MEASURED
+    date: *id002
+    source: https://akitaonrails.com/en/2026/03/31/minisforum-ms-s1-max-amd-ai-max-395-review/
+    note: Ollama. Best of eight models measured on this box.
+  - model: qwen3.5-122b
+    quant: q4
+    tok_s: 19.2
+    confidence: MEASURED
+    date: *id002
+    source: https://akitaonrails.com/en/2026/03/31/minisforum-ms-s1-max-amd-ai-max-395-review/
+    note: Ollama Q4_K_M.
+  - model: qwen2.5-72b
+    quant: q4
+    tok_s: 4.5
+    confidence: MEASURED
+    date: *id002
+    source: https://akitaonrails.com/en/2026/03/31/minisforum-ms-s1-max-amd-ai-max-395-review/
+    note: Ollama Q4_K_M. Dense 72B on a 256 GB/s bus.
+- id: hp-z2-mini-g1a
+  name: HP Z2 Mini G1a
+  vendor: HP
+  form_factor: complete
+  memory_gb_max: 128
+  bandwidth_nominal_gb_s: 256.0
+  price_usd: 2374.05
+  idle_w: 23.34
+  load_w: 256.0
+  notes: Ryzen AI Max PRO 395. Promo price. HP states 8000MT/s while a retailer lists 8533MT/s so the
+    bus figure is contested.
+  date: *id003
+  price_confidence: VOLATILE
+  source: https://slickdeals.net/f/18831334-hp-z2-mini-g1a-ai-workstation-ryzen-ai-max-pro-395-128gb-lpddr5x-1tb-gen4-ssd-2xtb4-wi-fi7-win11p-3yrs-onsite-warranty-2374-05-f-s
+  throughput:
+  - model: gpt-oss-120b
+    quant: mxfp4
+    tok_s: 40.0
+    confidence: MEASURED
+    date: *id002
+    source: https://www.storagereview.com/review/hp-z2-mini-g1a-review-running-gpt-oss-120b-without-a-discrete-gpu
+    note: Quantized to Int4. Source says close to 40 tok/s so treat as approximate.
+- id: bosgame-m5
+  name: Bosgame M5
+  vendor: Bosgame
+  form_factor: complete
+  memory_gb_max: 128
+  bandwidth_nominal_gb_s: 256.0
+  bandwidth_effective_gb_s: 215.0
+  price_usd: 2999.0
+  load_w: 170.0
+  notes: Ryzen AI Max+ 395. Launched at 1699 which was likely a different tier.
+  date: *id003
+  price_confidence: VOLATILE
+  source: https://wccftech.com/review/bosgame-m5-review-the-cheapest-128-gb-strix-halo-mini-pc/
+- id: dgx-spark
+  name: NVIDIA DGX Spark
+  vendor: NVIDIA
+  form_factor: complete
+  memory_gb_max: 128
+  bandwidth_nominal_gb_s: 273.0
+  price_usd: 4699.0
+  idle_w: 40.0
+  load_w: 130.0
+  notes: GB10 Grace-Blackwell. Launched at 3999 in Oct 2025 and was raised in Feb 2026. Dense-model decode
+    comes in well under what 273 GB/s implies so effective bandwidth is likely much lower but nobody has
+    published a figure.
+  date: *id003
+  price_confidence: VOLATILE
+  source: https://www.itechguides.com/nvidias-3000-ai-desktop-is-now-a-4699-dgx-spark-what-it-really-does/
+  throughput:
+  - model: gpt-oss-120b
+    quant: mxfp4
+    tok_s: 60.57
+    confidence: MEASURED
+    date: *id002
+    source: https://github.com/ggml-org/llama.cpp/discussions/16578
+    note: Short context. Falls to 40.55 at 32K context.
+  - model: qwen3-30b-moe
+    quant: q4
+    tok_s: 89.3
+    confidence: MEASURED
+    date: *id002
+    source: https://github.com/DandinPower/llama.cpp_bench/blob/main/dgx_spark/report.md
+  - model: qwen3-32b-dense
+    quant: q4
+    tok_s: 10.7
+    confidence: MEASURED
+    date: *id002
+    source: https://github.com/DandinPower/llama.cpp_bench/blob/main/dgx_spark/report.md
+    note: 762 tok/s prompt processing. Dense decode far under what 273 GB/s implies.
+  - model: qwen3-coder-30b
+    quant: q8
+    tok_s: 44.26
+    confidence: MEASURED
+    date: *id002
+    source: https://github.com/ggml-org/llama.cpp/discussions/16578
+- id: asus-ascent-gx10
+  name: ASUS Ascent GX10
+  vendor: ASUS
+  form_factor: complete
+  memory_gb_max: 128
+  bandwidth_nominal_gb_s: 273.0
+  price_usd: 2999.99
+  notes: Same GB10 silicon as DGX Spark. Price spread 2999 to 5099 across retailers. No machine-specific
+    benchmark published.
+  date: *id003
+  price_confidence: VOLATILE
+  source: https://eshop.asus.com/us/90ms0371-m000a0-asus-ascent-gx10.html
+- id: dell-pro-max-gb10
+  name: Dell Pro Max with GB10
+  vendor: Dell
+  form_factor: complete
+  memory_gb_max: 128
+  bandwidth_nominal_gb_s: 273.0
+  price_usd: 8224.39
+  notes: Same GB10 silicon. Price is a 4TB configuration. A distributor separately cited 6300 MSRP which
+    is unreconciled.
+  date: *id003
+  price_confidence: VOLATILE
+  source: https://www.dell.com/en-us/shop/desktop-computers/dell-pro-max-with-gb10/spd/dell-pro-max-fcm1253-micro
+- id: lenovo-thinkstation-pgx
+  name: Lenovo ThinkStation PGX
+  vendor: Lenovo
+  form_factor: complete
+  memory_gb_max: 128
+  bandwidth_nominal_gb_s: 273.0
+  price_usd: 4100.0
+  idle_w: 38.0
+  load_w: 160.0
+  notes: Same GB10 silicon. 1TB config.
+  date: *id003
+  price_confidence: VOLATILE
+  source: https://www.cdw.com/product/lenovo-thinkstation-pgx-desktop-gb10-superchip-1tb-ssd-128gb-ram/8521647
+- id: hp-zgx-nano-g1n
+  name: HP ZGX Nano G1n
+  vendor: HP
+  form_factor: complete
+  memory_gb_max: 128
+  bandwidth_nominal_gb_s: 273.0
+  price_usd: 4759.0
+  idle_w: 37.0
+  load_w: 158.0
+  notes: Same GB10 silicon. Price is the Amazon 4TB listing. HP direct lists 7399 for the same config.
+  date: *id003
+  price_confidence: VOLATILE
+  source: https://www.hp.com/us-en/shop/pdp/hp-zgx-nano-g1n-ai-station-p-cz2v8ut-aba-1
+- id: msi-edgexpert
+  name: MSI EdgeXpert MS-C931
+  vendor: MSI
+  form_factor: complete
+  memory_gb_max: 128
+  bandwidth_nominal_gb_s: 273.0
+  price_usd: 5979.0
+  notes: Same GB10 silicon. 4TB config. Base 1TB SKU is 2999.
+  date: *id003
+  price_confidence: VOLATILE
+  source: https://us-store.msi.com/EdgeXpert-11SUS
+- id: jetson-agx-thor
+  name: NVIDIA Jetson AGX Thor Dev Kit
+  vendor: NVIDIA
+  form_factor: complete
+  memory_gb_max: 128
+  bandwidth_nominal_gb_s: 273.0
+  price_usd: 3499.0
+  load_w: 130.0
+  notes: Robotics devkit not a desk appliance. Power is a configurable 40-130W band not a clean idle/load
+    pair.
+  date: *id003
+  price_confidence: CONFIRMED
+  source: https://nvidianews.nvidia.com/news/nvidia-blackwell-powered-jetson-thor-now-available-accelerating-the-age-of-general-robotics
+- id: rtx-5090
+  name: NVIDIA RTX 5090
+  vendor: NVIDIA
+  form_factor: component
+  memory_gb_max: 32
+  bandwidth_nominal_gb_s: 1792.0
+  price_usd: 4699.99
+  idle_w: 30.0
+  load_w: 575.0
+  notes: Card only needs a host. Newegg median 2026-08-28. RTX 50-series median prices rose up to 41 percent
+    in August 2026. Transient spikes to 901W measured.
+  date: *id003
+  price_confidence: VOLATILE
+  source: https://videocardprices.com/card/nvidia-rtx-5090/
+  throughput:
+  - model: llama-2-7b
+    quant: q4
+    tok_s: 300.4
+    confidence: MEASURED
+    date: *id002
+    source: https://github.com/ggml-org/llama.cpp/discussions/15013
+    note: tg128.
+- id: rtx-4090
+  name: NVIDIA RTX 4090
+  vendor: NVIDIA
+  form_factor: component
+  memory_gb_max: 24
+  bandwidth_nominal_gb_s: 1008.0
+  price_usd: 2500.0
+  load_w: 450.0
+  notes: Card only. Discontinued by NVIDIA Oct 2024 so channel stock only. Price is the low end of a 2500
+    to 3775 range.
+  date: *id003
+  price_confidence: VOLATILE
+  source: https://wccftech.com/nvidia-geforce-rtx-4090-massive-price-hike-prior-to-rtx-5090-launch-over-2500-usd/
+  throughput:
+  - model: llama-2-7b
+    quant: q4
+    tok_s: 188.96
+    confidence: MEASURED
+    date: *id002
+    source: https://github.com/ggml-org/llama.cpp/discussions/15013
+    note: tg128.
+- id: rtx-5080
+  name: NVIDIA RTX 5080
+  vendor: NVIDIA
+  form_factor: component
+  memory_gb_max: 16
+  bandwidth_nominal_gb_s: 960.0
+  price_usd: 1299.0
+  load_w: 360.0
+  notes: Card only. 16GB caps what will fit.
+  date: *id003
+  price_confidence: VOLATILE
+  source: https://videocardprices.com/card/nvidia-rtx-5080/
+  throughput:
+  - model: llama-3.1-8b
+    quant: q4
+    tok_s: 44.9
+    confidence: MEASURED
+    date: *id002
+    source: https://www.localscore.ai/accelerator/489
+- id: rtx-3090
+  name: NVIDIA RTX 3090
+  vendor: NVIDIA
+  form_factor: component
+  memory_gb_max: 24
+  bandwidth_nominal_gb_s: 936.0
+  price_usd: 972.0
+  load_w: 350.0
+  notes: Card only. Used market price.
+  date: *id003
+  price_confidence: VOLATILE
+  source: https://bestvaluegpu.com/history/new-and-used-rtx-3090-price-history-and-specs/
+  throughput:
+  - model: llama-2-7b
+    quant: q4
+    tok_s: 161.89
+    confidence: MEASURED
+    date: *id002
+    source: https://github.com/ggml-org/llama.cpp/discussions/15013
+    note: tg128.
+- id: rtx-3090-ti
+  name: NVIDIA RTX 3090 Ti
+  vendor: NVIDIA
+  form_factor: component
+  memory_gb_max: 24
+  bandwidth_nominal_gb_s: 1008.0
+  price_usd: 1240.0
+  load_w: 450.0
+  notes: Card only. Used market price.
+  date: *id003
+  price_confidence: VOLATILE
+  source: https://bestvaluegpu.com/history/new-and-used-rtx-3090-ti-price-history-and-specs/
+  throughput:
+  - model: llama-2-7b
+    quant: q4
+    tok_s: 172.26
+    confidence: MEASURED
+    date: *id002
+    source: https://github.com/ggml-org/llama.cpp/discussions/15013
+    note: tg128.
+- id: rx-7900-xtx
+  name: AMD Radeon RX 7900 XTX
+  vendor: AMD
+  form_factor: component
+  memory_gb_max: 24
+  bandwidth_nominal_gb_s: 960.0
+  price_usd: 883.0
+  idle_w: 20.0
+  load_w: 355.0
+  notes: Card only. Idle is 20W with VRR on and 104W with it off.
+  date: *id003
+  price_confidence: VOLATILE
+  source: https://cputronic.com/en/gpu/amd-radeon-rx-7900-xtx
+  throughput:
+  - model: llama-2-7b
+    quant: q4
+    tok_s: 122.5
+    confidence: MEASURED
+    date: *id002
+    source: https://github.com/1337hero/rx7900xtx-llama-bench-rocm
+    note: Single card. Range 118.82-126.09.
+- id: rtx-6000-ada
+  name: NVIDIA RTX 6000 Ada
+  vendor: NVIDIA
+  form_factor: component
+  memory_gb_max: 48
+  bandwidth_nominal_gb_s: 960.0
+  price_usd: 7088.99
+  idle_w: 17.0
+  load_w: 305.0
+  notes: Card only. Idle and load are measured not spec.
+  date: *id003
+  price_confidence: VOLATILE
+  source: https://www.ebay.com/p/6058201433
+  throughput:
+  - model: llama-3-70b
+    quant: q4
+    tok_s: 18.36
+    confidence: MEASURED
+    date: *id002
+    source: https://github.com/XiongjieDai/GPU-Benchmarks-on-LLM-Inference
+    note: Measured on a RunPod instance of the same silicon.
+  - model: llama-3-8b
+    quant: q4
+    tok_s: 130.99
+    confidence: MEASURED
+    date: *id002
+    source: https://github.com/XiongjieDai/GPU-Benchmarks-on-LLM-Inference
+    note: Measured on a RunPod instance of the same silicon.
+- id: rtx-pro-6000-blackwell
+  name: NVIDIA RTX PRO 6000 Blackwell
+  vendor: NVIDIA
+  form_factor: component
+  memory_gb_max: 96
+  bandwidth_nominal_gb_s: 1792.0
+  price_usd: 16999.99
+  load_w: 600.0
+  notes: Card only. 600W is the card TBP. A published 918W load figure appears to be whole-system draw.
+  date: *id003
+  price_confidence: VOLATILE
+  source: https://www.newegg.com/nvidia-blackwell-rtx-pro-6000-96gb-graphic-card/p/N82E16814132106
+  throughput:
+  - model: gpt-oss-120b
+    quant: q4
+    tok_s: 134.0
+    confidence: MEASURED
+    date: *id002
+    source: https://www.databasemart.com/blog/ollama-gpu-benchmark-pro6000
+    note: Ollama. Fits 120B in 96GB VRAM.
+  - model: llama-3.3-70b
+    quant: q4
+    tok_s: 32.0
+    confidence: MEASURED
+    date: *id002
+    source: https://www.databasemart.com/blog/ollama-gpu-benchmark-pro6000
+    note: Ollama.
+- id: l40s
+  name: NVIDIA L40S
+  vendor: NVIDIA
+  form_factor: component
+  memory_gb_max: 48
+  bandwidth_nominal_gb_s: 864.0
+  price_usd: 8499.99
+  load_w: 350.0
+  notes: Card only.
+  date: *id003
+  price_confidence: VOLATILE
+  source: https://www.cdw.com/product/pny-nvidia-quadro-l40s-graphic-card-48-gb-gddr6/7582191
+  throughput:
+  - model: llama-3-70b
+    quant: q4
+    tok_s: 15.31
+    confidence: MEASURED
+    date: *id002
+    source: https://github.com/XiongjieDai/GPU-Benchmarks-on-LLM-Inference
+    note: Measured on a RunPod instance of the same silicon.
+- id: a100-80gb
+  name: NVIDIA A100 80GB PCIe
+  vendor: NVIDIA
+  form_factor: component
+  memory_gb_max: 80
+  bandwidth_nominal_gb_s: 1935.0
+  load_w: 300.0
+  notes: Card only. Quote-only at resellers with no self-service single-unit price found.
+  date: *id003
+  price_confidence: TODO
+  source: https://www.exxactcorp.com/NVIDIA-900-21001-0020-000-E4581872
+  throughput:
+  - model: llama-3-70b
+    quant: q4
+    tok_s: 22.11
+    confidence: MEASURED
+    date: *id002
+    source: https://github.com/XiongjieDai/GPU-Benchmarks-on-LLM-Inference
+    note: Measured on a RunPod instance of the same silicon.
+- id: h100-80gb
+  name: NVIDIA H100 80GB PCIe
+  vendor: NVIDIA
+  form_factor: component
+  memory_gb_max: 80
+  bandwidth_nominal_gb_s: 2000.0
+  price_usd: 38171.0
+  load_w: 350.0
+  notes: Card only. Aggregator average from April 2026 not a current quote. Bandwidth is a floor figure.
+  date: *id003
+  price_confidence: VOLATILE
+  source: https://gpupoet.com/gpu/learn/price/april-2026/nvidia-h100-pcie
+  throughput:
+  - model: llama-3-70b
+    quant: q4
+    tok_s: 25.01
+    confidence: MEASURED
+    date: *id002
+    source: https://github.com/XiongjieDai/GPU-Benchmarks-on-LLM-Inference
+    note: Measured on a RunPod instance of the same silicon.
 model_params:
-  - id: gpt-oss-120b
-    total_params_b: 117
-    active_params_b: 5.1
-    params_confidence: CONFIRMED
-    n_experts: 128
-    experts_per_token: 4
-    experts_confidence: CONFIRMED
-    source: sources#gpt-oss-120b-params
-  - id: dense-70b
-    total_params_b: 70
-    active_params_b: 70
-    params_confidence: DEFINITION
-    note: stand-in for the Llama-3.3-70B class
-  - id: moe-671b
-    total_params_b: 671
-    active_params_b: 37
-    params_confidence: CONFIRMED
-    source: sources#moe-671b-params
-    note: DeepSeek V3/R1-class geometry, used only for the M5 Ultra estimate
-
-# Bytes per parameter by quantization, used only by the Model 2 upper-bound estimator.
+- id: gpt-oss-120b
+  total_params_b: 117
+  active_params_b: 5.1
+  params_confidence: CONFIRMED
+  n_experts: 128
+  experts_per_token: 4
+  experts_confidence: CONFIRMED
+  source: sources#gpt-oss-120b-params
+- id: dense-70b
+  total_params_b: 70
+  active_params_b: 70
+  params_confidence: DEFINITION
+  note: stand-in for the Llama-3.3-70B class
+- id: moe-671b
+  total_params_b: 671
+  active_params_b: 37
+  params_confidence: CONFIRMED
+  source: sources#moe-671b-params
+  note: DeepSeek V3/R1-class geometry, used only for the M5 Ultra estimate
 quant_bytes_per_param:
-  - quant: q4
-    bytes: 0.60
-    confidence: ESTIMATE
-    note: Q4_K_M-class GGUF averages about 4.8 bits per weight including scales
-  - quant: mxfp4
-    bytes: 0.53
-    confidence: ESTIMATE
-    note: 4.25 bits per weight effective for MXFP4 block format
-  - quant: q8
-    bytes: 1.06
-    confidence: ESTIMATE
-
-# The always-on box scenario used for the local cost-per-token finding (F4).
+- quant: q4
+  bytes: 0.6
+  confidence: ESTIMATE
+  note: Q4_K_M-class GGUF averages about 4.8 bits per weight including scales
+- quant: mxfp4
+  bytes: 0.53
+  confidence: ESTIMATE
+  note: 4.25 bits per weight effective for MXFP4 block format
+- quant: q8
+  bytes: 1.06
+  confidence: ESTIMATE
 local_box_scenario:
   machine: gmktec-evo-x2
   model: gpt-oss-120b
@@ -153,9 +853,8 @@ local_box_scenario:
   utilization: 1.0
   wall_draw_w: 140
   wall_draw_confidence: DERIVED
-  wall_draw_note: >-
-    Back-solved from the handoff's five-year power figure of about $1,227 at $0.20/kWh
-    (140W x 8766 h/yr x 5 yr x $0.20 / 1000 = $1,227.24). Nobody metered the box under
-    sustained decode; treat as the handoff's implied input.
+  wall_draw_note: Back-solved from the handoff's five-year power figure of about $1,227 at $0.20/kWh (140W
+    x 8766 h/yr x 5 yr x $0.20 / 1000 = $1,227.24). Nobody metered the box under sustained decode; treat
+    as the handoff's implied input.
   date: 2026-08-29
   confidence: ESTIMATE

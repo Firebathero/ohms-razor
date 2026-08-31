@@ -383,13 +383,29 @@ def render_handoff_reconciliation() -> str:
 
 
 def render_apple_lineup() -> str:
+    """Apple's own lineup, which is the evidence for the supply reading: memory ceilings
+    are what moved, and they moved down."""
     hw = repo_data.load("hardware")
-    lines = ["| Machine | Price | Max unified memory | Bandwidth |", "|---|---:|---:|---:|"]
-    for m in hw["machines"]:
-        if not m["id"].startswith("mac-"):
-            continue
-        price = usd(m["price_usd"], 0) + (" (ESTIMATE)" if m["price_confidence"] == "ESTIMATE" else "")
-        lines.append(f"| {m['name']} | {price} | {m['memory_gb_max']}GB | {m['bandwidth_nominal_gb_s']} GB/s |")
+    macs = [m for m in hw["machines"] if m["id"].startswith("mac")]
+    lines = ["| Machine | Price | Max unified memory | Bandwidth | Status |", "|---|---:|---:|---:|---|"]
+    for m in sorted(macs, key=lambda m: -int(m.get("memory_gb_max") or 0)):
+        price_v = m.get("price_usd")
+        price = usd(price_v, 0) if price_v is not None else "TODO: unverified"
+        if m.get("price_confidence") == "ESTIMATE":
+            price += " (est.)"
+        bw = m.get("bandwidth_nominal_gb_s")
+        note = m.get("notes") or ""
+        if "iscontinued" in note or "uperseded" in note:
+            status = "prior gen"
+        elif "hips" in note or "ot in hand" in note:
+            status = "announced"
+        else:
+            status = "current"
+        lines.append(
+            f"| {m['name']} | {price} | {m.get('memory_gb_max', '?')}GB | "
+            f"{bw:g} GB/s | {status} |" if bw else
+            f"| {m['name']} | {price} | {m.get('memory_gb_max', '?')}GB | TODO | {status} |"
+        )
     return "\n".join(lines)
 
 

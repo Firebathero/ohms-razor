@@ -1,0 +1,35 @@
+machine_id,model,quant,tok_s,confidence,source,note
+mac-studio-m3-ultra,deepseek-r1-671b,q4,17.5,MEASURED,https://www.macrumors.com/2025/03/17/apples-m3-ultra-runs-deepseek-r1-efficiently/,Dave2D. 17-18 tok/s at under 200W at the wall.
+mac-studio-m3-ultra,deepseek-r1-0528,mlx4,11.15,MEASURED,https://dev.to/someoddcodeguy/running-deepseek-r1-0528-q4km-and-mlx-4-bit-on-a-mac-studio-m3-le4,MLX 4-bit. 189.46 tok/s prompt processing.
+mac-studio-m3-ultra,llama-3.1-405b,q6,1.25,MEASURED,https://dev.to/someoddcodeguy/running-llama-31-405b-q6-and-command-a-111b-q8-on-m3-ultra-mac-studio-3mc6,22.54 tok/s prompt processing. Far under any useful sustained rate.
+mac-studio-m3-ultra,command-a-111b,q8,3.24,MEASURED,https://dev.to/someoddcodeguy/running-llama-31-405b-q6-and-command-a-111b-q8-on-m3-ultra-mac-studio-3mc6,82.86 tok/s prompt processing.
+mac-studio-m4-max,llama-2-7b,q4,69.95,MEASURED,https://github.com/ggml-org/llama.cpp/discussions/4167,Measured on a 36GB 32-core-GPU unit not the 128GB SKU.
+macbook-pro-14-m5,llama-7b,q4,30.3,MEASURED,https://github.com/ggml-org/llama.cpp/discussions/4167,Range 29.62-31.02 without the Neural Accelerator. F16 was 9.43.
+macbook-pro-16-m4-max,llama-7b,q4,69.95,MEASURED,https://github.com/ggml-org/llama.cpp/discussions/4167,Measured on a 36GB unit not the 128GB SKU. Q8_0 43.87 F16 24.29.
+framework-desktop,qwen3-30b-a3b,q4,85.11,MEASURED,https://llm-tracker.info/AMD-Strix-Halo-(Ryzen-AI-Max+-395)-GPU-Performance,Vulkan RADV backend.
+framework-desktop,llama-4-scout-109b,q4,20.23,MEASURED,https://llm-tracker.info/AMD-Strix-Halo-(Ryzen-AI-Max+-395)-GPU-Performance,Vulkan. Generic Strix Halo gfx1151 platform figure.
+framework-desktop,qwen3.5-122b-a10b,q6,19.17,MEASURED,https://github.com/ggml-org/llama.cpp/discussions/23659,ROCm 7.2.3. Rises to 26.86 with MTP speculative decoding.
+gmktec-evo-x2,llama-3.3-70b,q6,3.75,MEASURED,https://www.servethehome.com/gmktec-evo-x2-review-an-amd-ryzen-ai-max-395-powerhouse/4/,Full offload. Range 3.7-3.8. A dense 70B is hopeless on this bus.
+gmktec-evo-x2,gpt-oss-20b,mxfp4,65.73,MEASURED,https://nishtahir.com/gmktec-evo-x2-ryzen-ai-max-395-benchmarks/,
+gmktec-evo-x2,qwen3-coder-30b,q8,50.16,MEASURED,https://github.com/pablo-ross/strix-halo-gmktec-evo-x2/blob/main/QWEN3-CODER-30B_BENCHMARK.md,ROCm.
+minisforum-ms-s1-max,qwen3.5-35b,q4,43.2,MEASURED,https://akitaonrails.com/en/2026/03/31/minisforum-ms-s1-max-amd-ai-max-395-review/,Ollama. Best of eight models measured on this box.
+minisforum-ms-s1-max,qwen3.5-122b,q4,19.2,MEASURED,https://akitaonrails.com/en/2026/03/31/minisforum-ms-s1-max-amd-ai-max-395-review/,Ollama Q4_K_M.
+minisforum-ms-s1-max,qwen2.5-72b,q4,4.5,MEASURED,https://akitaonrails.com/en/2026/03/31/minisforum-ms-s1-max-amd-ai-max-395-review/,Ollama Q4_K_M. Dense 72B on a 256 GB/s bus.
+hp-z2-mini-g1a,gpt-oss-120b,mxfp4,40,MEASURED,https://www.storagereview.com/review/hp-z2-mini-g1a-review-running-gpt-oss-120b-without-a-discrete-gpu,Quantized to Int4. Source says close to 40 tok/s so treat as approximate.
+dgx-spark,gpt-oss-120b,mxfp4,60.57,MEASURED,https://github.com/ggml-org/llama.cpp/discussions/16578,Short context. Falls to 40.55 at 32K context.
+dgx-spark,qwen3-30b-moe,q4,89.3,MEASURED,https://github.com/DandinPower/llama.cpp_bench/blob/main/dgx_spark/report.md,
+dgx-spark,qwen3-32b-dense,q4,10.7,MEASURED,https://github.com/DandinPower/llama.cpp_bench/blob/main/dgx_spark/report.md,762 tok/s prompt processing. Dense decode far under what 273 GB/s implies.
+dgx-spark,qwen3-coder-30b,q8,44.26,MEASURED,https://github.com/ggml-org/llama.cpp/discussions/16578,
+rtx-5090,llama-2-7b,q4,300.4,MEASURED,https://github.com/ggml-org/llama.cpp/discussions/15013,tg128.
+rtx-4090,llama-2-7b,q4,188.96,MEASURED,https://github.com/ggml-org/llama.cpp/discussions/15013,tg128.
+rtx-3090,llama-2-7b,q4,161.89,MEASURED,https://github.com/ggml-org/llama.cpp/discussions/15013,tg128.
+rtx-3090-ti,llama-2-7b,q4,172.26,MEASURED,https://github.com/ggml-org/llama.cpp/discussions/15013,tg128.
+rtx-5080,llama-3.1-8b,q4,44.9,MEASURED,https://www.localscore.ai/accelerator/489,
+rx-7900-xtx,llama-2-7b,q4,122.5,MEASURED,https://github.com/1337hero/rx7900xtx-llama-bench-rocm,Single card. Range 118.82-126.09.
+rtx-6000-ada,llama-3-70b,q4,18.36,MEASURED,https://github.com/XiongjieDai/GPU-Benchmarks-on-LLM-Inference,Measured on a RunPod instance of the same silicon.
+rtx-6000-ada,llama-3-8b,q4,130.99,MEASURED,https://github.com/XiongjieDai/GPU-Benchmarks-on-LLM-Inference,Measured on a RunPod instance of the same silicon.
+l40s,llama-3-70b,q4,15.31,MEASURED,https://github.com/XiongjieDai/GPU-Benchmarks-on-LLM-Inference,Measured on a RunPod instance of the same silicon.
+a100-80gb,llama-3-70b,q4,22.11,MEASURED,https://github.com/XiongjieDai/GPU-Benchmarks-on-LLM-Inference,Measured on a RunPod instance of the same silicon.
+h100-80gb,llama-3-70b,q4,25.01,MEASURED,https://github.com/XiongjieDai/GPU-Benchmarks-on-LLM-Inference,Measured on a RunPod instance of the same silicon.
+rtx-pro-6000-blackwell,gpt-oss-120b,q4,134,MEASURED,https://www.databasemart.com/blog/ollama-gpu-benchmark-pro6000,Ollama. Fits 120B in 96GB VRAM.
+rtx-pro-6000-blackwell,llama-3.3-70b,q4,32,MEASURED,https://www.databasemart.com/blog/ollama-gpu-benchmark-pro6000,Ollama.

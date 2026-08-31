@@ -90,28 +90,42 @@ def solve_tokens(
         if e["cost_per_task_usd"] is not None and e["model"] not in {m.id for m in repo_data.priced_models()}:
             unplaceable.append(f"{e['model']} (cost/task known, per-Mtok pricing not in data)")
 
+    # Every machine that can be costed competes: it needs a price, a load figure, and a
+    # measured rate for a model with a capability score. Anything missing one of those is
+    # named as unplaceable with the field it lacks, never dropped quietly.
     hw = repo_data.load("hardware")
     sc = hw["local_box_scenario"]
     op = repo_data.load("assumptions")["operating"]
+    years = float(sc["years"])
+    cooling = float(op["cooling_overhead"]["value"])
+    rate = float(op["electricity_usd_per_kwh"]["value"])
     for machine in hw["machines"]:
+        price = machine.get("price_usd")
+        # The scenario's back-solved wall draw applies only to the box it was solved for.
+        wall = (
+            float(sc["wall_draw_w"]) if machine["id"] == sc["machine"] else machine.get("load_w")
+        )
         for t in machine.get("throughput") or []:
-            score = scores.get(t["model"])
+            model_id = t["model"]
+            score = scores.get(model_id)
+            missing = []
             if score is None:
-                unplaceable.append(f"{machine['name']} + {t['model']} (no AA score in data)")
+                missing.append("no capability score for the model")
+            if price is None:
+                missing.append("no price")
+            if wall is None:
+                missing.append("no load power")
+            if missing:
+                unplaceable.append(f"{machine['name']} + {model_id} ({'; '.join(missing)})")
                 continue
-            if not (machine["id"] == sc["machine"] and t["model"] == sc["model"]):
-                unplaceable.append(f"{machine['name']} + {t['model']} (no measured wall draw in data)")
-                continue
-            years = float(sc["years"])
-            total = float(machine["price_usd"]) + lifetime_energy_cost(
-                float(sc["wall_draw_w"]),
-                float(op["cooling_overhead"]["value"]),
-                float(op["electricity_usd_per_kwh"]["value"]),
-                years,
-            )
+            total = float(price) + lifetime_energy_cost(float(wall), cooling, rate, years)
+            backend = t.get("backend")
+            label = f"{machine['name']} + {model_id}"
+            if backend:
+                label += f" [{backend}]"
             candidates.append(
                 _judge(
-                    f"{machine['name']} + {t['model']} (local)",
+                    f"{label} (local)",
                     "local",
                     total / (years * 12.0),
                     score,

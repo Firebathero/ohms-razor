@@ -64,10 +64,19 @@ SCHEMAS: dict[str, dict[str, Any]] = {
         "collection": "machines",
         "required": ["id", "name"],
         "columns": [
-            "id", "name", "vendor", "memory_gb_max", "bandwidth_nominal_gb_s",
-            "bandwidth_effective_gb_s", "price_usd", "idle_w", "load_w",
-            "source", "confidence", "notes",
+            "id", "name", "vendor", "form_factor", "memory_gb_max",
+            "bandwidth_nominal_gb_s", "bandwidth_effective_gb_s", "price_usd",
+            "idle_w", "load_w", "source", "confidence", "notes",
         ],
+    },
+    # Measured throughput, one row per machine/model/quant. Kept separate from the machine
+    # row because one machine accumulates many measurements over time, from different
+    # people running different models, and each carries its own source.
+    "throughput": {
+        "file": "hardware.yaml",
+        "collection": "machines",
+        "required": ["machine_id", "model", "quant", "tok_s"],
+        "columns": ["machine_id", "model", "quant", "tok_s", "confidence", "source", "note"],
     },
 }
 
@@ -78,7 +87,8 @@ def blank(v: str | None) -> bool:
 
 def typed(column: str, raw: str) -> Any:
     if column in {"id", "name", "vendor", "tier", "architecture", "source", "confidence",
-                  "notes", "price_note", "specrate_2p_systems"}:
+                  "notes", "price_note", "specrate_2p_systems", "form_factor",
+                  "machine_id", "model", "quant", "note"}:
         return raw.strip()
     if column == "open_weights":
         return raw.strip().lower() in {"true", "yes", "y", "1"}
@@ -129,7 +139,57 @@ def nest(kind: str, row: dict[str, Any], today: date) -> dict[str, Any]:
     return out
 
 
+def merge_throughput(rows: list[dict[str, Any]], dry_run: bool) -> int:
+    """Append measured tok/s to the machine it was measured on. A machine accumulates
+    many of these; a duplicate machine/model/quant is reported, never silently doubled."""
+    path = repo_data.DATA / "hardware.yaml"
+    blob = yaml.safe_load(path.read_text(encoding="utf-8"))
+    by_id = {m["id"]: m for m in blob["machines"]}
+    today = date.today()
+    added, dupes, orphans = 0, [], []
+    for row in rows:
+        mid = row["machine_id"]
+        machine = by_id.get(mid)
+        if machine is None:
+            orphans.append(mid)
+            continue
+        entries = machine.setdefault("throughput", [])
+        key = (row["model"], row["quant"])
+        if any((e.get("model"), e.get("quant")) == key for e in entries):
+            dupes.append(f"{mid}: {row['model']} {row['quant']}")
+            continue
+        entry = {
+            "model": row["model"],
+            "quant": row["quant"],
+            "tok_s": row["tok_s"],
+            "confidence": row.get("confidence") or "TODO",
+            "date": today,
+            "source": row.get("source") or "TODO: link",
+        }
+        if row.get("note"):
+            entry["note"] = row["note"]
+        if not dry_run:
+            entries.append(entry)
+        added += 1
+    print(f"throughput: {len(rows)} rows read")
+    print(f"  added      {added}")
+    if dupes:
+        print(f"  duplicate  {len(dupes)} (machine/model/quant already recorded): {'; '.join(dupes[:6])}")
+    if orphans:
+        print(f"  ORPHANS    {len(orphans)} rows name a machine not in the catalog: {', '.join(sorted(set(orphans)))}")
+    if dry_run:
+        print("\ndry run: nothing written")
+        return 0
+    path.write_text(
+        yaml.safe_dump(blob, sort_keys=False, allow_unicode=True, width=100), encoding="utf-8"
+    )
+    print(f"\nwrote {path.relative_to(repo_data.ROOT)}")
+    return 0
+
+
 def merge(kind: str, rows: list[dict[str, Any]], dry_run: bool) -> int:
+    if kind == "throughput":
+        return merge_throughput(rows, dry_run)
     schema = SCHEMAS[kind]
     path = repo_data.DATA / schema["file"]
     blob = yaml.safe_load(path.read_text(encoding="utf-8"))
