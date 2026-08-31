@@ -90,28 +90,62 @@ class PricedModel:
 
 
 def priced_models() -> list[PricedModel]:
+    """Only models with the pricing needed to cost the workload. A catalog entry missing
+    input or output pricing is not dropped from the repo, just from this list; it stays
+    visible through model_coverage() and becomes a work item. This is what lets the
+    catalog hold dozens of models where only some have been fully researched."""
     out = []
     for m in load("model_pricing")["models"]:
+        inp = _num(m.get("input_per_mtok"))
+        outp = _num(m.get("output_per_mtok"))
+        if inp is None or outp is None:
+            continue
         out.append(
             PricedModel(
                 id=m["id"],
-                vendor=m["vendor"],
-                tier=m["tier"],
+                vendor=m.get("vendor", "TODO"),
+                tier=m.get("tier", "unclassified"),
                 pricing=Pricing(
-                    input_per_mtok=float(m["input_per_mtok"]),
-                    cached_input_per_mtok=(
-                        None if m["cached_input_per_mtok"] is None else float(m["cached_input_per_mtok"])
-                    ),
-                    output_per_mtok=float(m["output_per_mtok"]),
+                    input_per_mtok=inp,
+                    cached_input_per_mtok=_num(m.get("cached_input_per_mtok")),
+                    output_per_mtok=outp,
                 ),
-                date=m["date"],
-                confidence=m["confidence"],
+                date=m.get("date"),
+                confidence=m.get("confidence", "TODO"),
                 promo=m.get("promo"),
                 peak=m.get("peak_pricing"),
                 notes=m.get("notes"),
             )
         )
     return out
+
+
+def model_coverage() -> Coverage:
+    """How much of the model catalog can actually be placed on the tokens graph. Needs
+    both a price (to cost the workload) and a score (to gate on capability)."""
+    catalog = load("model_pricing")["models"]
+    scores = {e["model"]: e["score"] for e in aa_index()["entries"]}
+    priced = {m.id for m in priced_models()}
+    placed, unplaceable = 0, []
+    for m in catalog:
+        mid = m["id"]
+        has_price = mid in priced
+        has_score = scores.get(mid, scores.get(mid.removesuffix("-cloud"))) is not None
+        if has_price and has_score:
+            placed += 1
+        else:
+            missing = []
+            if not has_price:
+                missing.append("price")
+            if not has_score:
+                missing.append("score")
+            unplaceable.append(f"{mid} (no {' or '.join(missing)})")
+    return Coverage(
+        total=len(catalog),
+        screenable=len(priced),
+        priced=placed,
+        unplaceable=sorted(unplaceable),
+    )
 
 
 @dataclass(frozen=True)

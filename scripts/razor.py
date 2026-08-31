@@ -54,6 +54,7 @@ class TokenResult:
     objective: str
     min_score: int
     budget_monthly: float | None
+    coverage: repo_data.Coverage
 
 
 def solve_tokens(
@@ -128,7 +129,8 @@ def solve_tokens(
             winner = max(feasible, key=lambda c: (c.score, -c.monthly_usd))
         else:
             winner = min(feasible, key=lambda c: (c.monthly_usd, -c.score))
-    return TokenResult(candidates, unplaceable, required, winner, objective, min_score, budget_monthly)
+    return TokenResult(candidates, unplaceable, required, winner, objective, min_score,
+                       budget_monthly, repo_data.model_coverage())
 
 
 def _judge(
@@ -368,17 +370,27 @@ def main() -> int:
     plot_tokens(tokens, args.outdir / "tokens.png")
     plot_compute(compute, args.outdir / "compute.png")
 
+    tcov = tokens.coverage
     print(f"TOKENS  objective={tokens.objective}  score>={tokens.min_score}  "
           f"rate bar={tokens.required_rate:.1f} tok/s"
           + (f"  budget=${tokens.budget_monthly:,.0f}/mo" if tokens.budget_monthly else ""))
-    for c in sorted(tokens.candidates, key=lambda c: c.monthly_usd):
+    print(f"        catalog={tcov.total}  priced={tcov.screenable}  placeable={tcov.priced}")
+    ranked = sorted(tokens.candidates, key=lambda c: c.monthly_usd)
+    shown = ranked if len(ranked) <= 15 else [c for c in ranked if c.feasible][:10] + [
+        c for c in ranked if not c.feasible
+    ][:5]
+    for c in shown:
         mark = "->" if tokens.winner and c.label == tokens.winner.label else ("  " if c.feasible else " x")
         why = f"  [{c.excluded_by}]" if c.excluded_by else ""
         print(f"  {mark} {c.label:38s} ${c.monthly_usd:>9,.2f}/mo  AA {c.score}{why}")
+    if len(ranked) > len(shown):
+        print(f"     ...and {len(ranked) - len(shown)} more (see the plot)")
     if tokens.winner is None:
         print("  no feasible candidate above your lines; loosen a threshold or add data")
     if tokens.unplaceable:
-        print("  not placeable: " + "; ".join(tokens.unplaceable))
+        head = tokens.unplaceable[:5]
+        print(f"  not placeable ({len(tokens.unplaceable)}): " + "; ".join(head)
+              + (f"; +{len(tokens.unplaceable) - 5} more" if len(tokens.unplaceable) > 5 else ""))
 
     cov = compute.coverage
     print(f"\nCOMPUTE objective={compute.objective}"
