@@ -22,7 +22,7 @@ data; it falls out of the data. There is currently nothing to route a "medium" c
 | claude-opus-5 | 63 | TODO: unverified | | not placeable yet |
 | gpt-oss-120b | 24 | TODO: unverified | | not placeable yet |
 
-Midrange models the handoff places at 2x to 14x glm-5.3-flash per task while scoring at or below it (individual figures pending re-pull): gpt-5.6-luna, deepseek-v4-pro, glm-5.2, qwen3.8-27b, gemini-3.7-flash, grok-4.5, muse-spark.
+Baseline is glm-5.3-flash, the cheapest costed entry, solved rather than named. Models the handoff placed between the tiers, scoring at or below the volume tier while costing a multiple of it (individual figures pending re-pull): gpt-5.6-luna, deepseek-v4-pro, glm-5.2, qwen3.8-27b, gemini-3.7-flash, grok-4.5, muse-spark.
 <!-- /gen:frontier_table -->
 
 At the top of the index, capability parity does not mean price parity: several models tie

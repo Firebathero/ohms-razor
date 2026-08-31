@@ -62,12 +62,21 @@ def main() -> int:
     op = repo_data.operating_inputs()
     a = repo_data.load("assumptions")
     ram = a["memory_pricing"]["ddr5_6400_rdimm_usd_per_gb"]
+    estimated = [
+        c["name"].replace("AMD EPYC ", "")
+        for c in repo_data.load("cpu_specs")["candidates"]
+        if c["phi"]["confidence"] == "ESTIMATE"
+    ]
+    caveat = f" Derate is an ESTIMATE for: {', '.join(estimated)}." if estimated else ""
+    cpu_survey = repo_data.load("cpu_specs").get("survey", {})
+    if cpu_survey.get("last_surveyed") is None:
+        caveat += f" Candidate set never surveyed: these {len(repo_data.cpu_inputs())} parts only."
     fig.text(
         0.01,
         0.01,
         f"Solved {date.today().isoformat()}: {op.years:.0f}-yr hold, "
         f"\\${op.electricity_usd_per_kwh:.2f}/kWh, DDR5 at \\${float(ram['value']):.2f}/GB "
-        f"({ram['date']}). The 9965's derate at 450W is an ESTIMATE.",
+        f"({ram['date']}).{caveat}",
         fontsize=6.5,
         color="dimgray",
     )

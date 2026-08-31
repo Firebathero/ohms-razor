@@ -2,6 +2,40 @@
 # never expire; street prices carry a 30-day window. The 1P scaling factor sigma and the
 # cTDP derates phi are the two most important non-measured numbers in the repo and are
 # tagged accordingly everywhere they appear.
+
+# WHAT THIS LIST IS SUPPOSED TO COVER. Without this block the candidate set is whatever
+# happened to come up in one conversation, and it never gets re-opened. The survey is the
+# mechanism for re-examining priors: it says what belongs here, where to look for new
+# entrants, and when the question was last actually asked.
+survey:
+  question: >-
+    Which single-socket server CPUs could plausibly win on dollars per unit of sustained
+    throughput for an always-on home or small-office compute node?
+  inclusion_criteria:
+    - single-socket capable (P-series or 1P-validated), since the model prices a 1P node
+    - available new through normal channels, or credibly available used at a tracked price
+    - a published SPECrate 2017 int_base result, or one derivable from a published ratio
+    - fits a standard SP5/LGA-class board and a 1000W-class PSU
+  out_of_scope:
+    - dual-socket-only parts (the model prices one socket)
+    - GPUs and accelerators (different workload; the token side covers inference)
+    - cloud instance types (priced separately under rental_offers)
+  where_to_look:
+    - spec.org SPECrate 2017 int_base submissions, filtered to recent server parts
+    - AMD EPYC, Intel Xeon, and Ampere product pages for parts shipped since the last survey
+    - Phoronix and ServeTheHome launch coverage for parts without SPEC submissions yet
+  last_surveyed: null
+  survey_interval_days: 90
+  confidence: TODO
+  note: >-
+    NEVER SURVEYED. The four candidates below were inherited from the research handoff,
+    which compared them against each other and did not record what else was considered or
+    why anything was left out. They are all AMD Zen 5 / 5c, which is a strong prior nobody
+    has tested: no Intel Xeon 6, no Ampere, no Zen 6 part, no previous-generation EPYC at
+    a collapsed used price. Until a real survey runs, read every ranking here as "best of
+    these four", not "best available".
+  considered_and_excluded: []   # nothing recorded; see note
+
 calibration:
   sigma_1p_scaling:
     value: 0.5256

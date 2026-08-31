@@ -1,6 +1,36 @@
 # API list pricing, USD per million tokens. Peak/off-peak schedules and promos carried
 # explicitly. When a price moves, push the old value into history rather than deleting it.
 # Freshness window: 30 days (see CONTRIBUTING.md).
+
+# WHAT THIS LIST IS SUPPOSED TO COVER. This is the fastest-moving universe in the repo:
+# models launch, get deprecated, and reprice on no schedule. A closed list here is how the
+# tool ends up confidently recommending last quarter's winner.
+survey:
+  question: >-
+    Which hosted models could plausibly win the volume tier (cheapest path that clears a
+    capability bar) or the frontier tier (top of the index, called rarely)?
+  inclusion_criteria:
+    - publicly available API with published per-token pricing
+    - scored on the capability index used in data/benchmarks.yaml, or scoreable
+    - no minimum-commit or enterprise-only pricing that a solo operator cannot get
+  out_of_scope:
+    - models without public pricing (cannot price the workload against them)
+    - subscription seats rather than metered tokens (different unit; not comparable)
+  where_to_look:
+    - the capability index leaderboard, every entry above the current volume-tier score
+    - vendor pricing pages for launches since the last survey
+    - open-weights models newly available from a hosted provider, priced per token
+  last_surveyed: null
+  survey_interval_days: 30
+  confidence: TODO
+  note: >-
+    NEVER SURVEYED. The four priced models below came from the research handoff. The index
+    in data/benchmarks.yaml already names entries with no pricing here (a known gap the
+    refresh plan reports), but nobody has asked the broader question of which models exist
+    now that are not on either list. Given how fast this tier moves, treat a survey older
+    than the interval as the most likely source of a wrong answer.
+  considered_and_excluded: []   # nothing recorded; see note
+
 models:
   - id: glm-5.3-flash
     vendor: Zhipu

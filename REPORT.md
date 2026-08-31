@@ -24,7 +24,7 @@ THE TOKENS QUESTION  (thinking)
   local inference  no: the best passing local config runs 3.3x cloud cost at AA 24
   the local box    hosts the agent: orchestration, sandboxes, a small resident triage model
 
-Caveats, solved with the answer: kimi-k3, glm-5.3-max, claude-opus-5 sit at or above the frontier pick's score with no cost per task yet (TODO in data/benchmarks.yaml); the pick re-solves when they are costed. kimi-k3 is the one frontier model with API pricing here and prices the reference workload at $52,542 (27.4x default), which is why the frontier tier is for rare calls, not the loop. Every price is VOLATILE; run scripts/check_staleness.py before trusting.
+Caveats, solved with the answer: kimi-k3, glm-5.3-max, claude-opus-5 sit at or above the frontier pick's score with no cost per task yet (TODO in data/benchmarks.yaml); the pick re-solves when they are costed. kimi-k3 is the one frontier model with API pricing here and prices the reference workload at $52,542 (27.4x default), which is why the frontier tier is for rare calls, not the loop. Every price is VOLATILE; run scripts/check_staleness.py before trusting. And the harder caveat: 3 candidate sets (CPU candidates for the compute node, hosted models for the token tiers, local machines for on-box inference) have never been surveyed for entrants, so these picks are the best of an inherited list, not the best available. Run /refresh-data to re-open them.
 ```
 <!-- /gen:the_answer -->
 
@@ -45,6 +45,19 @@ Caveats, solved with the answer: kimi-k3, glm-5.3-max, claude-opus-5 sit at or a
 ![Capability vs cost Pareto frontier](analysis/assets/pareto_frontier.png)
 
 ![Compute per watt vs Psi](analysis/assets/compute_per_watt.png)
+
+## How wide was the search?
+
+<!-- gen:survey_status -->
+| Candidate set | Candidates | Last surveyed | Interval | Status |
+|---|---:|---|---:|---|
+| CPU candidates for the compute node | 4 | never | 90d | **never surveyed** |
+| hosted models for the token tiers | 4 | never | 30d | **never surveyed** |
+| local machines for on-box inference | 4 | never | 90d | **never surveyed** |
+| the capability axis itself | 7 | 2026-08-26 | 60d | current |
+
+3 of 4 candidate sets were inherited from the original research and have never been re-opened. Every ranking drawn from them is "best of these", not "best available". Run `python scripts/refresh_plan.py` for the survey scope and where to look, or `/refresh-data` to have an agent do it.
+<!-- /gen:survey_status -->
 
 ## How much to trust it today
 

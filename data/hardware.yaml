@@ -2,6 +2,36 @@
 # closet. Bandwidth is the number that matters; token generation is memory-bandwidth-bound.
 # Measured throughput always takes precedence over the Model 2 upper-bound estimate.
 # Freshness window: 30 days on prices; measured figures keep their tags.
+
+# WHAT THIS LIST IS SUPPOSED TO COVER.
+survey:
+  question: >-
+    Which always-on machines could plausibly sustain the required token rate locally at a
+    cost per token competitive with hosted inference?
+  inclusion_criteria:
+    - enough memory to hold a model that clears the capability bar, with usable context
+    - a published or measured memory bandwidth figure
+    - idle power low enough to leave running 24/7
+    - buyable as a complete machine by one person
+  out_of_scope:
+    - multi-GPU workstations and rack servers with discrete accelerators (different
+      economics; if this becomes interesting it needs its own model, not a row here)
+    - clusters (the reference workload is one always-on box)
+  where_to_look:
+    - Apple silicon lineup at each refresh (memory ceilings move, and they have moved down)
+    - AMD Strix Halo class mini-PCs and successors from GMKtec, Beelink, Minisforum
+    - NVIDIA DGX Spark class desk machines and any unified-memory ARM equivalent
+    - llama.cpp and vLLM benchmark threads for measured tok/s on new hardware
+  last_surveyed: null
+  survey_interval_days: 90
+  confidence: TODO
+  note: >-
+    NEVER SURVEYED. Four machines inherited from the handoff: three Apple, one Strix Halo.
+    That is a narrow slice of what exists. The finding that only one configuration clears
+    the throughput bar is a statement about these four, and a new high-bandwidth machine is
+    exactly the kind of entrant that would change it.
+  considered_and_excluded: []   # nothing recorded; see note
+
 machines:
   - id: mac-mini-m6
     name: Mac mini M6

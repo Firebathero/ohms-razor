@@ -1,5 +1,33 @@
 # Capability scores. Index parity is not task parity: two models with equal scores are not
 # interchangeable for a specific job (handoff weakness 6). Freshness window: 60 days.
+
+# WHAT THIS LIST IS SUPPOSED TO COVER. Also worth re-asking: whether this index is still
+# the right capability axis at all. A benchmark that saturates or gets gamed stops
+# separating candidates, and the whole tokens answer rests on this one number.
+survey:
+  question: >-
+    Which models' capability scores do we need in order to place every priced candidate,
+    and is this index still the right axis to rank capability on?
+  inclusion_criteria:
+    - every model in data/model_pricing.yaml needs a score, or it cannot be placed
+    - every model scoring at or above the current volume-tier pick needs a cost per task
+  where_to_look:
+    - the index's own leaderboard, pinned to a version, at each refresh
+    - the index's methodology notes for scoring changes that would break comparability
+      with previously recorded scores
+  alternatives_to_reconsider:
+    - whether a task-specific eval would rank the volume tier differently for agent loops,
+      which is the actual workload this repo models
+  last_surveyed: 2026-08-26
+  survey_interval_days: 60
+  confidence: PARTIAL
+  note: >-
+    The scores were pulled at the version and date recorded below, so the entries here are
+    current as of then. What has never been asked is the second question: whether this
+    index is the right axis. It is used as the sole capability gate in the razor, so if it
+    stops discriminating, every token answer silently degrades.
+  considered_and_excluded: []
+
 aa_intelligence_index:
   version: v4.1.1
   date: 2026-08-26

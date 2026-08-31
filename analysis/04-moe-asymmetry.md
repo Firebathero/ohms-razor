@@ -39,7 +39,7 @@ gpt-oss-120b: 117B total, 5.1B active, 128 experts, top-4 routing. Sparsity rati
 | 32 | 173 | 5 | 3.7B |
 | 64 | 255 | 4 | 1.8B |
 
-First-order model (uniform independent routing), measured Strix Halo bandwidth, ESTIMATE throughout. The measured single-stream rate is 31 tok/s against a 80 tok/s bound, a 2.6x overhead factor; scale the whole curve down accordingly. Measured batching curves are the top item on the open-questions list.
+First-order model (uniform independent routing), measured bandwidth on GMKtec EVO-X2 (Strix Halo), ESTIMATE throughout. The measured single-stream rate is 31 tok/s against a 80 tok/s bound, a 2.6x overhead factor; scale the whole curve down accordingly. Measured batching curves are the top item on the open-questions list.
 <!-- /gen:moe_batching -->
 
 Read the two right-hand columns together: aggregate throughput climbs while resident

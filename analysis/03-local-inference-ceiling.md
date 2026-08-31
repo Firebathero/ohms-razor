@@ -48,7 +48,7 @@ price it against the cheapest cloud host of the same weights:
 | Local vs cloud | 3.3x |
 | Break-even utilization | 3.3 (above 1.0 = impossible) |
 
-Capability context: gpt-oss-120b scores 24 on the AA index. The volume API tier (glm-5.3-flash) scores 57 at $0.045/task. The local option costs more per token and delivers less than half the capability.
+Capability context: gpt-oss-120b scores 24 on the index. The current volume tier (glm-5.3-flash) scores 57 at $0.045/task. The local option costs more per token and delivers 42% of the capability.
 <!-- /gen:local_vs_cloud -->
 
 This is the most favorable possible framing for local (full saturation, which nobody

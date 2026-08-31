@@ -58,20 +58,33 @@ The two compute objectives optimize different formulas over the same inputs:
 They pick different CPUs right now, and a test asserts they do. Candidates missing a
 score or a price are listed as unplaceable, never guessed.
 
-## Keep the data current
+## Keep the data current, and the candidate set open
 
-The only job here needing judgment is knowing whether the inputs are stale and going to
-get them. Everything else is arithmetic.
+The only job here needing judgment is knowing whether the inputs are still right and going
+to get them. Everything else is arithmetic.
 
 ```bash
-python scripts/refresh_plan.py    # the work order: what's stale, what's missing, where to edit
+python scripts/refresh_plan.py    # the work order: surveys, stale figures, gaps
 /refresh-data                     # hand that order to an agent (Claude Code slash command)
 python scripts/sotw.py update     # after data changes: re-solve docs, plots, reports, checks
 ```
 
+The work order has three kinds of item, and the third is the one that matters:
+
+- **stale**: a figure we have, past its freshness window
+- **gap**: a figure we know is missing, so a candidate can't be placed
+- **survey**: the candidate list itself is due to be re-opened
+
+Refreshing prices for a fixed list keeps last quarter's answer accurate to the cent while
+the real answer moves to a part nobody added. Every candidate file carries a `survey`
+block: what the list should cover, the inclusion criteria, where to look for entrants, and
+when that question was last actually asked. A list that has never been surveyed counts as
+overdue, and every tool says so in its output rather than presenting an inherited list as
+a considered one.
+
 `refresh_plan.py --json` emits the same order machine-readable. Every figure carries a
 pull date and a confidence tag; nothing gets invented, and estimates never get promoted to
-facts.
+facts. A survey that finds nothing still records that it ran.
 
 ## What else you get
 
@@ -95,9 +108,25 @@ THE TOKENS QUESTION  (thinking)
   local inference  no: the best passing local config runs 3.3x cloud cost at AA 24
   the local box    hosts the agent: orchestration, sandboxes, a small resident triage model
 
-Caveats, solved with the answer: kimi-k3, glm-5.3-max, claude-opus-5 sit at or above the frontier pick's score with no cost per task yet (TODO in data/benchmarks.yaml); the pick re-solves when they are costed. kimi-k3 is the one frontier model with API pricing here and prices the reference workload at $52,542 (27.4x default), which is why the frontier tier is for rare calls, not the loop. Every price is VOLATILE; run scripts/check_staleness.py before trusting.
+Caveats, solved with the answer: kimi-k3, glm-5.3-max, claude-opus-5 sit at or above the frontier pick's score with no cost per task yet (TODO in data/benchmarks.yaml); the pick re-solves when they are costed. kimi-k3 is the one frontier model with API pricing here and prices the reference workload at $52,542 (27.4x default), which is why the frontier tier is for rare calls, not the loop. Every price is VOLATILE; run scripts/check_staleness.py before trusting. And the harder caveat: 3 candidate sets (CPU candidates for the compute node, hosted models for the token tiers, local machines for on-box inference) have never been surveyed for entrants, so these picks are the best of an inherited list, not the best available. Run /refresh-data to re-open them.
 ```
 <!-- /gen:the_answer -->
+
+## How wide was the search?
+
+A ranking is only as good as the set it ranked. Each candidate list declares what it is
+supposed to cover and when that question was last actually asked:
+
+<!-- gen:survey_status -->
+| Candidate set | Candidates | Last surveyed | Interval | Status |
+|---|---:|---|---:|---|
+| CPU candidates for the compute node | 4 | never | 90d | **never surveyed** |
+| hosted models for the token tiers | 4 | never | 30d | **never surveyed** |
+| local machines for on-box inference | 4 | never | 90d | **never surveyed** |
+| the capability axis itself | 7 | 2026-08-26 | 60d | current |
+
+3 of 4 candidate sets were inherited from the original research and have never been re-opened. Every ranking drawn from them is "best of these", not "best available". Run `python scripts/refresh_plan.py` for the survey scope and where to look, or `/refresh-data` to have an agent do it.
+<!-- /gen:survey_status -->
 
 ## What you can change
 
@@ -173,6 +202,8 @@ Up front on purpose. Details in `analysis/`.
 - Index parity is not task parity
 - 10-year amortization is aggressive; numbers roughly double at 5
 - The supply-vs-demand finding has a live counter-reading, presented in `analysis/06`
+- Three of four candidate sets have never been surveyed for entrants, so every ranking is
+  "best of these", not "best available" (see the survey table above)
 
 ## Trust
 
@@ -225,5 +256,14 @@ spreadsheets/  the original interactive Psi workbook (kept in parity by test)
   burn, watt cap, work floor) and picks the objective; the tool shaves what fails and
   plots what survives to `out/`. Added `scripts/refresh_plan.py` and the `/refresh-data`
   command so keeping the data current is the only judgment call left in the loop.
+- **2026-08-31** Opened the candidate sets. Every data file now carries a `survey` block
+  declaring its scope, inclusion criteria, and where to look for entrants, and the refresh
+  plan emits survey work when one is overdue or has never run. Audit finding: three of the
+  four sets were inherited from the original research and had never been re-opened, and
+  the CPU list is entirely AMD Zen 5, which nobody had tested as a prior. Removed the
+  hardcoded incumbents from the solvers and renderers (the volume tier, the cache-rate
+  rival, the frontier baseline, the MoE exemplar, and the derate footnote are all solved
+  now), and converted incumbent-pinning tests into property tests plus one explicit
+  `INCUMBENTS` map that fails loudly when a winner is displaced.
 
 MIT. See `LICENSE`.

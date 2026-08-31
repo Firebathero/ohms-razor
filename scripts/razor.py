@@ -344,6 +344,19 @@ def main() -> int:
     if compute.winner is None:
         print("  no feasible candidate above your lines; loosen a threshold")
 
+    import refresh_plan
+
+    unsurveyed = [
+        what for name, _p, _y, what in refresh_plan.SURVEYED
+        if repo_data.load(name).get("survey", {}).get("last_surveyed") is None
+    ]
+    if unsurveyed:
+        print(f"\nSCOPE   {len(unsurveyed)} candidate set(s) never surveyed for entrants:")
+        for what in unsurveyed:
+            print(f"          {what}")
+        print("        These picks are the best of an inherited list, not the best available.")
+        print("        Re-open them: python scripts/refresh_plan.py   or  /refresh-data")
+
     print(f"\nwrote {args.outdir / 'tokens.png'}")
     print(f"wrote {args.outdir / 'compute.png'}")
     return 0

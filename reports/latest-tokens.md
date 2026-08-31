@@ -13,7 +13,7 @@ THE TOKENS QUESTION  (thinking)
   local inference  no: the best passing local config runs 3.3x cloud cost at AA 24
   the local box    hosts the agent: orchestration, sandboxes, a small resident triage model
 
-Caveats, solved with the answer: kimi-k3, glm-5.3-max, claude-opus-5 sit at or above the frontier pick's score with no cost per task yet (TODO in data/benchmarks.yaml); the pick re-solves when they are costed. kimi-k3 is the one frontier model with API pricing here and prices the reference workload at $52,542 (27.4x default), which is why the frontier tier is for rare calls, not the loop. Every price is VOLATILE; run scripts/check_staleness.py before trusting.
+Caveats, solved with the answer: kimi-k3, glm-5.3-max, claude-opus-5 sit at or above the frontier pick's score with no cost per task yet (TODO in data/benchmarks.yaml); the pick re-solves when they are costed. kimi-k3 is the one frontier model with API pricing here and prices the reference workload at $52,542 (27.4x default), which is why the frontier tier is for rare calls, not the loop. Every price is VOLATILE; run scripts/check_staleness.py before trusting. And the harder caveat: 3 candidate sets (CPU candidates for the compute node, hosted models for the token tiers, local machines for on-box inference) have never been surveyed for entrants, so these picks are the best of an inherited list, not the best available. Run /refresh-data to re-open them.
 ```
 
 ## The reference workload
@@ -43,7 +43,7 @@ Scores: AA Intelligence Index v4.1.1 (2026-08-26). Index parity is not task pari
 
 ## The cache objection, priced
 
-| Cache hit rate | glm-5.3-flash | deepseek-v4-flash (off-peak) | gap |
+| Cache hit rate | glm-5.3-flash | deepseek-v4-flash | gap |
 |---:|---:|---:|---:|
 | 0% | $2,520 | $3,465 | $945 |
 | 25% | $2,331 | $3,130 | $799 |
@@ -52,7 +52,7 @@ Scores: AA Intelligence Index v4.1.1 (2026-08-26). Index parity is not task pari
 | 80% | $1,915 | $2,391 | $476 |
 | 100% | $1,764 | $2,123 | $359 |
 
-DeepSeek's cache rate ($0.007/M vs $0.030/M) is worth at most $145 on this volume even if every input token were cached, against a $504 output-price gap. The ranking cannot flip on cache behavior.
+deepseek-v4-flash has the cheapest cache rate on offer at $0.007/M against glm-5.3-flash's $0.030/M, 4.3x better. On this volume that is worth at most $145 even if every input token were cached, against a $504 output-price gap. The ranking cannot flip on cache behavior.
 
 ## The frontier is a cliff
 
@@ -66,7 +66,7 @@ DeepSeek's cache rate ($0.007/M vs $0.030/M) is worth at most $145 on this volum
 | claude-opus-5 | 63 | TODO: unverified | | not placeable yet |
 | gpt-oss-120b | 24 | TODO: unverified | | not placeable yet |
 
-Midrange models the handoff places at 2x to 14x glm-5.3-flash per task while scoring at or below it (individual figures pending re-pull): gpt-5.6-luna, deepseek-v4-pro, glm-5.2, qwen3.8-27b, gemini-3.7-flash, grok-4.5, muse-spark.
+Baseline is glm-5.3-flash, the cheapest costed entry, solved rather than named. Models the handoff placed between the tiers, scoring at or below the volume tier while costing a multiple of it (individual figures pending re-pull): gpt-5.6-luna, deepseek-v4-pro, glm-5.2, qwen3.8-27b, gemini-3.7-flash, grok-4.5, muse-spark.
 
 ![Capability vs cost Pareto frontier](../analysis/assets/pareto_frontier.png)
 
@@ -96,7 +96,7 @@ The Model 2 column is the bandwidth-bound upper bound; measured figures below th
 | Local vs cloud | 3.3x |
 | Break-even utilization | 3.3 (above 1.0 = impossible) |
 
-Capability context: gpt-oss-120b scores 24 on the AA index. The volume API tier (glm-5.3-flash) scores 57 at $0.045/task. The local option costs more per token and delivers less than half the capability.
+Capability context: gpt-oss-120b scores 24 on the index. The current volume tier (glm-5.3-flash) scores 57 at $0.045/task. The local option costs more per token and delivers 42% of the capability.
 
 ## Batching, modelled
 
@@ -112,7 +112,18 @@ gpt-oss-120b: 117B total, 5.1B active, 128 experts, top-4 routing. Sparsity rati
 | 32 | 173 | 5 | 3.7B |
 | 64 | 255 | 4 | 1.8B |
 
-First-order model (uniform independent routing), measured Strix Halo bandwidth, ESTIMATE throughout. The measured single-stream rate is 31 tok/s against a 80 tok/s bound, a 2.6x overhead factor; scale the whole curve down accordingly. Measured batching curves are the top item on the open-questions list.
+First-order model (uniform independent routing), measured bandwidth on GMKtec EVO-X2 (Strix Halo), ESTIMATE throughout. The measured single-stream rate is 31 tok/s against a 80 tok/s bound, a 2.6x overhead factor; scale the whole curve down accordingly. Measured batching curves are the top item on the open-questions list.
+
+## How wide was the search
+
+| Candidate set | Candidates | Last surveyed | Interval | Status |
+|---|---:|---|---:|---|
+| CPU candidates for the compute node | 4 | never | 90d | **never surveyed** |
+| hosted models for the token tiers | 4 | never | 30d | **never surveyed** |
+| local machines for on-box inference | 4 | never | 90d | **never surveyed** |
+| the capability axis itself | 7 | 2026-08-26 | 60d | current |
+
+3 of 4 candidate sets were inherited from the original research and have never been re-opened. Every ranking drawn from them is "best of these", not "best available". Run `python scripts/refresh_plan.py` for the survey scope and where to look, or `/refresh-data` to have an agent do it.
 
 ## How much to trust this today
 

@@ -6,9 +6,17 @@ current, and going and getting it when it is not. Everything downstream is arith
     python scripts/refresh_plan.py            human-readable work order
     python scripts/refresh_plan.py --json     same thing for an agent to consume
 
-Emits one item per stale or missing figure: the YAML path to edit, what to look for, and
-which source note in data/SOURCES.md covers it. Gaps count as work too, because a missing
-price is why a candidate cannot be placed on the graphs.
+Three kinds of work, and the third matters most:
+
+  stale     a figure we have, past its freshness window
+  gap       a figure we know is missing, so a candidate cannot be placed
+  survey    the candidate set itself is due to be re-opened
+
+Refreshing prices for a fixed list of candidates keeps last quarter's answer accurate to
+four decimal places while the actual answer moved to a part that is not on the list. Each
+data file carries a `survey` block declaring what its list is supposed to cover and where
+to look for entrants; this emits an item whenever that question is overdue, and treats a
+list that has never been surveyed as overdue by definition.
 """
 
 from __future__ import annotations
@@ -16,6 +24,7 @@ from __future__ import annotations
 import json
 import sys
 from dataclasses import asdict, dataclass
+from datetime import date
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -25,7 +34,7 @@ import repo_data  # noqa: E402
 
 @dataclass
 class Item:
-    kind: str        # stale | expired | gap
+    kind: str        # stale | expired | gap | survey
     figure: str
     file: str
     yaml_path: str
@@ -34,8 +43,62 @@ class Item:
     priority: int    # 1 highest
 
 
-def build() -> list[Item]:
+# Each data file that carries a candidate list, and where its survey block lives.
+SURVEYED = [
+    ("cpu_specs", "data/cpu_specs.yaml", "candidates[]", "CPU candidates for the compute node"),
+    ("model_pricing", "data/model_pricing.yaml", "models[]", "hosted models for the token tiers"),
+    ("hardware", "data/hardware.yaml", "machines[]", "local machines for on-box inference"),
+    ("benchmarks", "data/benchmarks.yaml", "aa_intelligence_index", "the capability axis itself"),
+]
+
+
+def survey_items(today: date) -> list[Item]:
+    """Is the candidate set itself due to be re-opened? A list that has never been
+    surveyed is overdue by definition: it is whatever came up once, not a considered set."""
     items: list[Item] = []
+    for name, path, yaml_path, what in SURVEYED:
+        blob = repo_data.load(name)
+        s = blob.get("survey")
+        if s is None:
+            items.append(
+                Item("survey", f"survey scope undeclared: {what}", path, "survey",
+                     "data/SOURCES.md",
+                     "no survey block, so there is no record of what this list should cover", 1)
+            )
+            continue
+        last = s.get("last_surveyed")
+        interval = int(s.get("survey_interval_days", 90))
+        n = _count_candidates(blob, name)
+        if last is None:
+            items.append(
+                Item("survey", f"never surveyed: {what}", path, yaml_path,
+                     "; ".join(s.get("where_to_look", [])) or "data/SOURCES.md",
+                     f"{n} candidates inherited, never re-opened. {s.get('question', '').strip()}",
+                     1)
+            )
+        else:
+            age = (today - last).days
+            if age > interval:
+                items.append(
+                    Item("survey", f"survey overdue: {what}", path, yaml_path,
+                         "; ".join(s.get("where_to_look", [])) or "data/SOURCES.md",
+                         f"last surveyed {age}d ago against a {interval}d interval, {n} candidates",
+                         2)
+                )
+    return items
+
+
+def _count_candidates(blob: dict, name: str) -> int:
+    for key in ("candidates", "models", "machines"):
+        if key in blob:
+            return len(blob[key])
+    idx = blob.get("aa_intelligence_index")
+    return len(idx["entries"]) if idx else 0
+
+
+def build(today: date | None = None) -> list[Item]:
+    today = today or date.today()
+    items: list[Item] = survey_items(today)
 
     for r in check_staleness.collect():
         if r.status == "fresh":
@@ -115,7 +178,11 @@ def main() -> int:
     if not items:
         print("Nothing to pull. All figures fresh, no gaps.")
         return 0
-    print(f"REFRESH WORK ORDER  ({len(items)} items)\n")
+    surveys = [i for i in items if i.kind == "survey"]
+    print(f"REFRESH WORK ORDER  ({len(items)} items, {len(surveys)} of them surveys)\n")
+    if surveys:
+        print("Surveys come first. Refreshing prices for a fixed candidate list keeps the old")
+        print("answer accurate while the real answer moves to something not on the list.\n")
     for i in items:
         print(f"[P{i.priority}] {i.kind.upper():8} {i.figure}")
         print(f"         {i.detail}")
@@ -123,6 +190,8 @@ def main() -> int:
         print(f"         source: {i.source}\n")
     print("Rules: keep the old value in a history list, set the new date, never invent a")
     print("figure or a URL (write 'TODO: unverified'), never upgrade an estimate to a fact.")
+    print("On a survey: add what you find, record what you rejected and why in")
+    print("considered_and_excluded, and set last_surveyed even when nothing changed.")
     print("Then: python scripts/sotw.py update")
     return 0
 

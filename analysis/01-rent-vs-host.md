@@ -36,7 +36,7 @@ per token than GLM's. The sweep below re-prices the whole workload at cache hit 
 0 to 100 percent.
 
 <!-- gen:cache_sensitivity -->
-| Cache hit rate | glm-5.3-flash | deepseek-v4-flash (off-peak) | gap |
+| Cache hit rate | glm-5.3-flash | deepseek-v4-flash | gap |
 |---:|---:|---:|---:|
 | 0% | $2,520 | $3,465 | $945 |
 | 25% | $2,331 | $3,130 | $799 |
@@ -45,7 +45,7 @@ per token than GLM's. The sweep below re-prices the whole workload at cache hit 
 | 80% | $1,915 | $2,391 | $476 |
 | 100% | $1,764 | $2,123 | $359 |
 
-DeepSeek's cache rate ($0.007/M vs $0.030/M) is worth at most $145 on this volume even if every input token were cached, against a $504 output-price gap. The ranking cannot flip on cache behavior.
+deepseek-v4-flash has the cheapest cache rate on offer at $0.007/M against glm-5.3-flash's $0.030/M, 4.3x better. On this volume that is worth at most $145 even if every input token were cached, against a $504 output-price gap. The ranking cannot flip on cache behavior.
 <!-- /gen:cache_sensitivity -->
 
 ## What would falsify this

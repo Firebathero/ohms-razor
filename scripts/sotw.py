@@ -49,6 +49,7 @@ def compose_tokens() -> str:
         _section("The local throughput bar", "local_hw"),
         _section("The saturated local box still loses", "local_vs_cloud"),
         _section("Batching, modelled", "moe_batching"),
+        _section("How wide was the search", "survey_status"),
         _section("How much to trust this today", "freshness"),
     ]
     return "\n".join(parts)
@@ -73,6 +74,7 @@ def compose_compute() -> str:
         _section("The memory lever", "memory_lever"),
         _section("Own vs rent", "rent_compare"),
         _section("Reconciliation with the handoff", "handoff_reconciliation"),
+        _section("How wide was the search", "survey_status"),
         _section("How much to trust this today", "freshness"),
     ]
     return "\n".join(parts)

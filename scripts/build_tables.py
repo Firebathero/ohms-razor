@@ -82,28 +82,48 @@ def render_api_cost_10yr() -> str:
 
 
 def render_cache_sensitivity() -> str:
+    """The winner against whichever rival has the best cache rate, both solved. The
+    objection this answers ("but the other one caches cheaper") should always be aimed at
+    the current challenger, not at whoever it was when this was written."""
     ref = repo_data.reference_workload()
     models = {m.id: m for m in repo_data.priced_models()}
-    glm, ds = models["glm-5.3-flash"], models["deepseek-v4-flash"]
-    rows = repo_data.cache_sensitivity("glm-5.3-flash", "deepseek-v4-flash", [0.0, 0.25, 0.5, 0.75, 0.8, 1.0])
+    winner = models[repo_data.volume_tier_pick().id]
+    rivals = [
+        m for m in repo_data.priced_models()
+        if m.id != winner.id and m.pricing.cached_input_per_mtok is not None
+    ]
+    if not rivals:
+        return "Only one priced model carries a cache rate, so there is no comparison to draw."
+    rival = min(rivals, key=lambda m: m.pricing.cached_input_per_mtok)
+    rows = repo_data.cache_sensitivity(winner.id, rival.id, [0.0, 0.25, 0.5, 0.75, 0.8, 1.0])
     lines = [
-        "| Cache hit rate | glm-5.3-flash | deepseek-v4-flash (off-peak) | gap |",
+        f"| Cache hit rate | {winner.id} | {rival.id} | gap |",
         "|---:|---:|---:|---:|",
     ]
     for h, a, b in rows:
         lines.append(f"| {h:.0%} | {usd(a, 0)} | {usd(b, 0)} | {usd(b - a, 0)} |")
     max_cache_advantage = (
         ref.lifetime.input_tokens
-        * (glm.pricing.cached_input_per_mtok - ds.pricing.cached_input_per_mtok)
+        * (winner.pricing.cached_input_per_mtok - rival.pricing.cached_input_per_mtok)
         / MTOK
     )
-    output_gap = ref.lifetime.output_tokens * (ds.pricing.output_per_mtok - glm.pricing.output_per_mtok) / MTOK
+    output_gap = (
+        ref.lifetime.output_tokens
+        * (rival.pricing.output_per_mtok - winner.pricing.output_per_mtok)
+        / MTOK
+    )
+    ratio = winner.pricing.cached_input_per_mtok / rival.pricing.cached_input_per_mtok
     lines.append("")
     lines.append(
-        f"DeepSeek's cache rate ({usd(ds.pricing.cached_input_per_mtok, 3)}/M vs "
-        f"{usd(glm.pricing.cached_input_per_mtok, 3)}/M) is worth at most "
-        f"{usd(max_cache_advantage, 0)} on this volume even if every input token were cached, "
-        f"against a {usd(output_gap, 0)} output-price gap. The ranking cannot flip on cache behavior."
+        f"{rival.id} has the cheapest cache rate on offer at "
+        f"{usd(rival.pricing.cached_input_per_mtok, 3)}/M against {winner.id}'s "
+        f"{usd(winner.pricing.cached_input_per_mtok, 3)}/M, {ratio:.1f}x better. On this volume "
+        f"that is worth at most {usd(max_cache_advantage, 0)} even if every input token were "
+        f"cached, against a {usd(output_gap, 0)} output-price gap. The ranking cannot flip on "
+        "cache behavior."
+        if output_gap > max_cache_advantage
+        else f"{rival.id}'s cache advantage is large enough relative to the output gap to matter; "
+        "read the table rather than the summary."
     )
     return "\n".join(lines)
 
@@ -111,14 +131,15 @@ def render_cache_sensitivity() -> str:
 def render_frontier_table() -> str:
     idx = repo_data.aa_index()
     points = repo_data.solve_frontier()
-    glm_cost = next(p.cost_per_task for p in points if p.model == "glm-5.3-flash")
+    baseline = min(points, key=lambda p: p.cost_per_task)
     lines = [
-        "| Model | AA score | $/task | vs glm-5.3-flash | Pareto |",
+        f"| Model | AA score | $/task | vs {baseline.model} | Pareto |",
         "|---|---:|---:|---:|---|",
     ]
     for p in points:
         lines.append(
-            f"| {p.model} | {p.score} | {usd(p.cost_per_task, 3)} | {p.cost_per_task / glm_cost:.1f}x | "
+            f"| {p.model} | {p.score} | {usd(p.cost_per_task, 3)} | "
+            f"{p.cost_per_task / baseline.cost_per_task:.1f}x | "
             f"{'on frontier' if p.on_frontier else 'dominated'} |"
         )
     uncosted = [e for e in idx["entries"] if e["cost_per_task_usd"] is None]
@@ -126,9 +147,19 @@ def render_frontier_table() -> str:
         lines.append(f"| {e['model']} | {e['score']} | TODO: unverified | | not placeable yet |")
     lines.append("")
     lines.append(
-        "Midrange models the handoff places at 2x to 14x glm-5.3-flash per task while scoring at or "
-        "below it (individual figures pending re-pull): " + ", ".join(idx["midrange_noted"]) + "."
+        f"Baseline is {baseline.model}, the cheapest costed entry, solved rather than named. "
+        "Models the handoff placed between the tiers, scoring at or below the volume tier while "
+        "costing a multiple of it (individual figures pending re-pull): "
+        + ", ".join(idx["midrange_noted"]) + "."
     )
+    survey = repo_data.load("benchmarks").get("survey", {})
+    if survey.get("last_surveyed") is None:
+        lines.append("")
+        lines.append(
+            "This list has never been surveyed for entrants (see the survey block in "
+            "`data/benchmarks.yaml`), so read it as the models that were on the list, not the "
+            "models that exist."
+        )
     return "\n".join(lines)
 
 
@@ -173,20 +204,22 @@ def render_local_vs_cloud() -> str:
     ]
     lines.append("")
     lines.append(
-        f"Capability context: {lc.model} scores {lc.local_score} on the AA index. The volume API tier "
-        f"(glm-5.3-flash) scores {lc.volume_tier_score} at {usd(lc.volume_tier_cost_per_task, 3)}/task. "
-        "The local option costs more per token and delivers less than half the capability."
+        f"Capability context: {lc.model} scores {lc.local_score} on the index. The current volume "
+        f"tier ({lc.volume_tier}) scores {lc.volume_tier_score} at "
+        f"{usd(lc.volume_tier_cost_per_task, 3)}/task. The local option costs more per token and "
+        f"delivers {lc.local_score / lc.volume_tier_score:.0%} of the capability."
     )
     return "\n".join(lines)
 
 
 def render_moe_batching() -> str:
+    model_id = repo_data.load("hardware")["local_box_scenario"]["model"]
     R, curve = repo_data.solve_moe_batching()
-    geo = repo_data.moe_geometry("gpt-oss-120b")
+    geo = repo_data.moe_geometry(model_id)
     _, bar_rows = repo_data.solve_local_bar()
-    measured = next(r for r in bar_rows if r.model == "gpt-oss-120b mxfp4")
+    measured = next(r for r in bar_rows if r.model and r.model.startswith(model_id))
     lines = [
-        f"gpt-oss-120b: {geo.total_params_b:g}B total, {geo.active_params_b:g}B active, "
+        f"{model_id}: {geo.total_params_b:g}B total, {geo.active_params_b:g}B active, "
         f"{geo.n_experts} experts, top-{geo.experts_per_token} routing. "
         f"Sparsity ratio R = {R:.1f}: you buy memory for {geo.total_params_b:g}B and get throughput from {geo.active_params_b:g}B.",
         "",
@@ -200,7 +233,8 @@ def render_moe_batching() -> str:
         )
     lines.append("")
     lines.append(
-        f"First-order model (uniform independent routing), measured Strix Halo bandwidth, ESTIMATE "
+        f"First-order model (uniform independent routing), measured bandwidth on "
+        f"{measured.machine}, ESTIMATE "
         f"throughout. The measured single-stream rate is {measured.tok_s:g} tok/s against a "
         f"{measured.bound_tok_s:.0f} tok/s bound, a {measured.bound_tok_s / measured.tok_s:.1f}x overhead "
         "factor; scale the whole curve down accordingly. Measured batching curves are the top item on "
@@ -413,6 +447,19 @@ def answer_caveat(p: "repo_data.Placement") -> str:
             "frontier tier is for rare calls, not the loop."
         )
     caveat += " Every price is VOLATILE; run scripts/check_staleness.py before trusting."
+
+    import refresh_plan
+
+    unsurveyed = [
+        what for name, _p, _y, what in refresh_plan.SURVEYED
+        if repo_data.load(name).get("survey", {}).get("last_surveyed") is None
+    ]
+    if unsurveyed:
+        caveat += (
+            f" And the harder caveat: {len(unsurveyed)} candidate sets ({', '.join(unsurveyed)}) "
+            "have never been surveyed for entrants, so these picks are the best of an inherited "
+            "list, not the best available. Run /refresh-data to re-open them."
+        )
     return caveat
 
 
@@ -454,6 +501,48 @@ def render_compute_per_watt() -> str:
         "only becomes the buying answer when watts, not dollars, are the binding constraint "
         "(a power-capped circuit, a thermal envelope, a UPS budget)."
     )
+    return "\n".join(lines)
+
+
+def render_survey_status() -> str:
+    """How wide the search was, per candidate set. A ranking is only as good as the set it
+    ranked, so this sits next to the findings rather than in an appendix."""
+    import refresh_plan
+
+    from datetime import date as _date
+
+    today = _date.today()
+    lines = [
+        "| Candidate set | Candidates | Last surveyed | Interval | Status |",
+        "|---|---:|---|---:|---|",
+    ]
+    for name, path, _yaml, what in refresh_plan.SURVEYED:
+        blob = repo_data.load(name)
+        s = blob.get("survey", {})
+        n = refresh_plan._count_candidates(blob, name)
+        last = s.get("last_surveyed")
+        interval = int(s.get("survey_interval_days", 90))
+        if last is None:
+            status, when = "**never surveyed**", "never"
+        else:
+            age = (today - last).days
+            when = str(last)
+            status = f"**{age}d overdue**" if age > interval else "current"
+        lines.append(f"| {what} | {n} | {when} | {interval}d | {status} |")
+    unsurveyed = [
+        name for name, _p, _y, _w in refresh_plan.SURVEYED
+        if repo_data.load(name).get("survey", {}).get("last_surveyed") is None
+    ]
+    lines.append("")
+    if unsurveyed:
+        lines.append(
+            f"{len(unsurveyed)} of {len(refresh_plan.SURVEYED)} candidate sets were inherited "
+            "from the original research and have never been re-opened. Every ranking drawn from "
+            "them is \"best of these\", not \"best available\". Run `python scripts/refresh_plan.py` "
+            "for the survey scope and where to look, or `/refresh-data` to have an agent do it."
+        )
+    else:
+        lines.append("Every candidate set has been surveyed inside its interval.")
     return "\n".join(lines)
 
 
@@ -566,6 +655,7 @@ def render_freshness() -> str:
 RENDERERS = {
     "last_solved": render_last_solved,
     "the_answer": render_the_answer,
+    "survey_status": render_survey_status,
     "knobs": render_knobs,
     "compute_per_watt": render_compute_per_watt,
     "workload_derivation": render_workload_derivation,

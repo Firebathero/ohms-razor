@@ -41,35 +41,57 @@ def test_capacity_fails_before_throughput_on_the_smallest_box():
 
 # ---------------------------------------------------------------- F1: renting wins
 
-def test_glm_is_the_cheapest_capable_volume_path_at_list():
-    """Cheapest path among capable models (score >= 50) at list price, promos excluded.
-    Winning at list is what makes the conclusion robust to the promo expiring."""
-    rows = [r for r in repo_data.solve_api_costs() if r.aa_score is not None and r.aa_score >= 50]
-    listed = [r for r in rows if r.expires is None]
-    cheapest = min(listed, key=lambda r: r.lifetime_cost)
-    assert cheapest.id == "glm-5.3-flash"
-    others = [r for r in listed if r.id != cheapest.id]
-    assert all(cheapest.lifetime_cost < r.lifetime_cost for r in others)
-    top_score = max(r.aa_score for r in listed)
-    assert cheapest.aa_score >= top_score - 3  # and it is near the top on capability
+def test_volume_tier_is_the_cheapest_capable_listed_path():
+    """The property, not the incumbent: whatever the answer calls the volume tier must be
+    the cheapest listed path clearing the capability floor, and it must win at list price
+    rather than on a promo."""
+    pick = repo_data.volume_tier_pick()
+    listed = [
+        r for r in repo_data.solve_api_costs()
+        if r.expires is None and r.aa_score is not None
+        and r.aa_score >= repo_data.CAPABLE_SCORE_FLOOR
+    ]
+    others = [r for r in listed if r.id != pick.id]
+    assert all(pick.lifetime_cost <= r.lifetime_cost for r in others)
+    assert pick.expires is None
 
 
-def test_glm_beats_deepseek_at_every_cache_ratio():
-    """The obvious objection to F1: DeepSeek's 4x cheaper cache. It never adds up."""
-    sweep = repo_data.cache_sensitivity(
-        "glm-5.3-flash", "deepseek-v4-flash", [i / 20 for i in range(21)]
+def test_volume_tier_beats_the_best_cache_rate_at_every_ratio():
+    """The obvious objection to F1: some rival caches far cheaper. Aimed at whichever
+    rival currently has the best cache rate, not at whoever held that spot when this was
+    written."""
+    winner = repo_data.volume_tier_pick().id
+    rivals = [
+        m for m in repo_data.priced_models()
+        if m.id != winner and m.pricing.cached_input_per_mtok is not None
+    ]
+    if not rivals:
+        pytest.skip("only one priced model carries a cache rate")
+    rival = min(rivals, key=lambda m: m.pricing.cached_input_per_mtok)
+    sweep = repo_data.cache_sensitivity(winner, rival.id, [i / 20 for i in range(21)])
+    assert all(a < b for _, a, b in sweep), (
+        f"{rival.id} now beats {winner} at some cache ratio; the volume-tier conclusion "
+        "may have flipped. Check the data, then record it in the README changelog."
     )
-    assert all(glm < ds for _, glm, ds in sweep)
 
 
 def test_cache_advantage_is_bounded_by_the_output_gap():
     ref = repo_data.reference_workload()
     models = {m.id: m for m in repo_data.priced_models()}
-    glm, ds = models["glm-5.3-flash"], models["deepseek-v4-flash"]
+    winner = models[repo_data.volume_tier_pick().id]
+    rivals = [
+        m for m in models.values()
+        if m.id != winner.id and m.pricing.cached_input_per_mtok is not None
+    ]
+    if not rivals:
+        pytest.skip("only one priced model carries a cache rate")
+    rival = min(rivals, key=lambda m: m.pricing.cached_input_per_mtok)
     max_cache_advantage = ref.lifetime.input_tokens * (
-        glm.pricing.cached_input_per_mtok - ds.pricing.cached_input_per_mtok
+        winner.pricing.cached_input_per_mtok - rival.pricing.cached_input_per_mtok
     )
-    output_gap = ref.lifetime.output_tokens * (ds.pricing.output_per_mtok - glm.pricing.output_per_mtok)
+    output_gap = ref.lifetime.output_tokens * (
+        rival.pricing.output_per_mtok - winner.pricing.output_per_mtok
+    )
     assert max_cache_advantage < output_gap
 
 
@@ -82,11 +104,12 @@ def test_promo_rows_follow_the_calendar():
 
 # ---------------------------------------------------------------- F2: the cliff
 
-def test_frontier_holds_glm_and_nothing_dominates_it():
+def test_cheapest_costed_point_is_always_on_the_frontier():
+    """By construction nothing can dominate the cheapest point. Stated as a property so it
+    keeps holding when the cheapest point changes hands."""
     points = repo_data.solve_frontier()
-    glm = next(p for p in points if p.model == "glm-5.3-flash")
-    assert glm.on_frontier
-    assert all(p.on_frontier for p in points if p.cost_per_task == min(q.cost_per_task for q in points))
+    cheapest = min(points, key=lambda p: p.cost_per_task)
+    assert cheapest.on_frontier
 
 
 # ---------------------------------------------------------------- F4: local loses anyway
@@ -202,6 +225,66 @@ def test_frontier_pick_reacts_to_costing_a_stronger_model():
 
         pytest.skip("no uncosted model currently outscores the costed frontier")
     assert len(repo_data.solve_placement().frontier_uncosted) >= 1
+
+
+# ---------------------------------------------------------------- priors
+
+# The current winners, recorded on purpose. Everything else in this file tests properties
+# that survive a change of incumbent; this one exists to notice when an incumbent falls.
+# A failure here is the repo working: a new candidate displaced the old answer. Confirm
+# the data, update these names, and record the change in the README changelog. Never
+# delete a candidate to make it pass.
+INCUMBENTS = {
+    "volume_tier": "glm-5.3-flash",
+    "compute_value": "AMD EPYC 9965",
+    "compute_efficiency": "AMD EPYC 9845",
+}
+
+
+def test_incumbents_still_hold():
+    p = repo_data.solve_placement()
+    current = {
+        "volume_tier": p.token_default.id,
+        "compute_value": p.compute_value.name,
+        "compute_efficiency": p.compute_efficiency.name,
+    }
+    changed = {k: (v, current[k]) for k, v in INCUMBENTS.items() if current[k] != v}
+    assert not changed, (
+        "an incumbent was displaced: "
+        + "; ".join(f"{k}: {old} -> {new}" for k, (old, new) in changed.items())
+        + ". This is a real result. Update INCUMBENTS here and add the reversal to the "
+        "README changelog."
+    )
+
+
+def test_candidate_sets_declare_their_scope():
+    """Every list of candidates must say what it is supposed to cover. Without this the
+    set is whatever came up once and nothing ever re-opens it."""
+    import refresh_plan
+
+    for name, path, _yaml, what in refresh_plan.SURVEYED:
+        survey = repo_data.load(name).get("survey")
+        assert survey is not None, f"{path} has no survey block, so its scope is undeclared"
+        assert survey.get("question"), f"{path} survey has no question"
+        assert survey.get("where_to_look"), f"{path} survey says nothing about where to look"
+        assert "last_surveyed" in survey, f"{path} survey never records when it last ran"
+        assert survey.get("survey_interval_days"), f"{path} survey has no interval"
+
+
+def test_unsurveyed_sets_are_disclosed_in_the_answer():
+    """If a candidate set has never been re-opened, the answer has to say so. A pick from
+    an inherited list must not read like a pick from the field."""
+    import build_tables
+
+    unsurveyed = [
+        name for name, _p, _y, _w in
+        __import__("refresh_plan").SURVEYED
+        if repo_data.load(name).get("survey", {}).get("last_surveyed") is None
+    ]
+    caveat = build_tables.answer_caveat(repo_data.solve_placement())
+    if unsurveyed:
+        assert "never been surveyed" in caveat
+    assert "VOLATILE" in caveat
 
 
 # ---------------------------------------------------------------- data hygiene

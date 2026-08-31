@@ -340,8 +340,25 @@ class LocalVsCloud:
     ratio: float
     breakeven_utilization: float
     local_score: int | None
+    volume_tier: str
     volume_tier_score: int | None
     volume_tier_cost_per_task: float | None
+
+
+def volume_tier_pick(today: date | None = None) -> ApiCostRow:
+    """Whichever listed path is cheapest while clearing the capability floor. Solved, never
+    named: if a new model undercuts the incumbent, this returns the new model and every
+    table and narrative that references "the volume tier" follows it."""
+    listed = [
+        r for r in solve_api_costs(today=today)
+        if r.expires is None and r.aa_score is not None and r.aa_score >= CAPABLE_SCORE_FLOOR
+    ]
+    if not listed:
+        raise ValueError(
+            f"no listed model clears the capability floor of {CAPABLE_SCORE_FLOOR}; "
+            "either the floor is wrong or data/model_pricing.yaml needs a survey"
+        )
+    return min(listed, key=lambda r: r.lifetime_cost)
 
 
 def solve_local_vs_cloud() -> LocalVsCloud:
@@ -364,6 +381,7 @@ def solve_local_vs_cloud() -> LocalVsCloud:
     cloud = next(m for m in priced_models() if m.id == f"{sc['model']}-cloud")
     scores = {e["model"]: e["score"] for e in aa_index()["entries"]}
     costs = {e["model"]: e["cost_per_task_usd"] for e in aa_index()["entries"]}
+    volume = volume_tier_pick()
     return LocalVsCloud(
         machine=machine["name"],
         model=sc["model"],
@@ -379,8 +397,9 @@ def solve_local_vs_cloud() -> LocalVsCloud:
             capex + energy, cloud.pricing.output_per_mtok, tok_s, years
         ),
         local_score=scores.get(sc["model"]),
-        volume_tier_score=scores.get("glm-5.3-flash"),
-        volume_tier_cost_per_task=costs.get("glm-5.3-flash"),
+        volume_tier=volume.id,
+        volume_tier_score=volume.aa_score,
+        volume_tier_cost_per_task=costs.get(volume.id),
     )
 
 
@@ -404,10 +423,13 @@ class BatchingRow:
     resident_params_b_per_stream: float
 
 
-def solve_moe_batching(model_id: str = "gpt-oss-120b", batches: tuple[int, ...] = (1, 2, 4, 8, 16, 32, 64)) -> tuple[float, list[BatchingRow]]:
-    """R and the first-order batching curve on the measured Strix Halo bandwidth."""
-    geo = moe_geometry(model_id)
+def solve_moe_batching(model_id: str | None = None, batches: tuple[int, ...] = (1, 2, 4, 8, 16, 32, 64)) -> tuple[float, list[BatchingRow]]:
+    """R and the first-order batching curve for whichever model the local box scenario
+    actually runs, on that machine's measured bandwidth. Not pinned to a model name: swap
+    the scenario in data/hardware.yaml and this follows."""
     hw = load("hardware")
+    model_id = model_id or hw["local_box_scenario"]["model"]
+    geo = moe_geometry(model_id)
     machine = next(m for m in hw["machines"] if m["id"] == hw["local_box_scenario"]["machine"])
     bw = float(machine["bandwidth_effective_gb_s"])
     quant = next(t["quant"] for t in machine["throughput"] if t["model"] == model_id)
@@ -617,11 +639,7 @@ def solve_placement(today: date | None = None) -> Placement:
     ratios = sorted(r.times_owning for r in rent_rows)
 
     api = solve_api_costs(today=today)
-    listed = [
-        r for r in api
-        if r.expires is None and r.aa_score is not None and r.aa_score >= CAPABLE_SCORE_FLOOR
-    ]
-    default = min(listed, key=lambda r: r.lifetime_cost)
+    default = volume_tier_pick(today=today)
     promo = next((r for r in api if r.id == default.id and r.expires is not None), None)
     costs = {e["model"]: e["cost_per_task_usd"] for e in aa_index()["entries"]}
 

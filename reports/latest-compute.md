@@ -107,6 +107,17 @@ Cloud repricing of 2026-06-15 ran +128% to +209%, computed from the raw prices (
 
 The handoff's F7 figures back-solve to DDR5 near $16.06/GB, against the $35.70/GB its own data table carries (2026-08-14). At the implied price this repo reproduces the reported number within 0.6% (the residual is rounding drift inside the handoff itself). The published Psi is whatever the current data solves to; the old figure is kept in data/cpu_specs.yaml as SUPERSEDED.
 
+## How wide was the search
+
+| Candidate set | Candidates | Last surveyed | Interval | Status |
+|---|---:|---|---:|---|
+| CPU candidates for the compute node | 4 | never | 90d | **never surveyed** |
+| hosted models for the token tiers | 4 | never | 30d | **never surveyed** |
+| local machines for on-box inference | 4 | never | 90d | **never surveyed** |
+| the capability axis itself | 7 | 2026-08-26 | 60d | current |
+
+3 of 4 candidate sets were inherited from the original research and have never been re-opened. Every ranking drawn from them is "best of these", not "best available". Run `python scripts/refresh_plan.py` for the survey scope and where to look, or `/refresh-data` to have an agent do it.
+
 ## How much to trust this today
 
 | Category | Figures | Oldest | Window | Status |
