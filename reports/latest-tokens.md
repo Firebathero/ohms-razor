@@ -2,7 +2,7 @@
 
 The tokens question (what do I use for thinking), solved from `data/` by `python scripts/sotw.py tokens`. Nothing here is hand-typed; git history is the archive of previous states.
 
-**Last solved:** 2026-08-29. **3 figure(s) past their freshness window** (run `python scripts/check_staleness.py`).
+**Last solved:** 2026-08-31. **3 figure(s) past their freshness window** (run `python scripts/check_staleness.py`).
 
 ## The answer
 

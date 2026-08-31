@@ -3,7 +3,7 @@
 Never use more model than the task needs.
 
 <!-- gen:last_solved -->
-**Last solved:** 2026-08-29. **3 figure(s) past their freshness window** (run `python scripts/check_staleness.py`).
+**Last solved:** 2026-08-31. **3 figure(s) past their freshness window** (run `python scripts/check_staleness.py`).
 <!-- /gen:last_solved -->
 
 Two questions, answered from dated data:
@@ -11,31 +11,76 @@ Two questions, answered from dated data:
 1. What do I buy for compute? (builds, sims, batch jobs)
 2. What do I use for tokens? (thinking)
 
-The short version: buy the compute, rent the tokens. An always-on box is where an agent
-lives, not where thinking happens.
-
-One rule: no static numbers. Every figure below is solved from `data/*.yaml` when the
-build runs. Change an input, rerun, everything updates. If a conclusion flips, a test
-fails and the flip goes in the changelog.
+Feed it your thresholds, get two graphs and a pick.
 
 ## Run it
 
 ```bash
 pip install -r requirements.txt
-
-python scripts/sotw.py            # the answer + what's stale
-python scripts/sotw.py update     # after editing data/: re-solve docs, plots, reports, run checks
-python scripts/sotw.py tokens     # write reports/latest-tokens.md
-python scripts/sotw.py compute    # write reports/latest-compute.md
-pytest                            # the checks on their own
+python scripts/razor.py
 ```
 
-## What you get
+Writes `out/tokens.png` and `out/compute.png`, prints the picks and why everything else
+got shaved.
 
-- The answer, below (terminal version: `python scripts/answer.py`)
+## Your thresholds are the objective function
+
+There is no "best" until you say what you need. The threshold is what makes the question
+answerable, so every one is a flag:
+
+```bash
+python scripts/razor.py --min-score 20                  # weak models allowed: converges on cheapest
+python scripts/razor.py --min-score 60                  # frontier only: watch the price
+python scripts/razor.py --out-mtok-yr 3150              # 10x the burn: the rate bar moves with it
+python scripts/razor.py --budget-monthly 20             # spend cap
+python scripts/razor.py --max-watts 500                 # power cap: flips the compute pick
+python scripts/razor.py --compute-objective efficiency  # optimize pts/W instead of $/work
+python scripts/razor.py --tokens-objective smartest     # buy capability, not price
+```
+
+| Flag | Default | What it does |
+|---|---|---|
+| `--min-score` | 50 | capability brightline on the AA index |
+| `--budget-monthly` | none | spend cap, $/mo |
+| `--out-mtok-yr`, `--in-mtok-yr`, `--cache` | reference workload | your burn; sets the sustained-rate bar |
+| `--tokens-objective` | `cheapest` | or `smartest` |
+| `--max-watts` | none | wall-watt cap |
+| `--min-points` | 0 | work floor, 1P SPECrate points |
+| `--compute-objective` | `value` | or `efficiency` |
+
+The two compute objectives optimize different formulas over the same inputs:
+
+- **value**: `Psi = TCO / (work x years)`, dollars per SPECrate-point-year, lower wins.
+  Capex, watts, cooling, hold period all fold in.
+- **efficiency**: SPECrate points per wall watt, higher wins. Use it when watts bind: a
+  capped circuit, a thermal envelope, a UPS budget.
+
+They pick different CPUs right now, and a test asserts they do. Candidates missing a
+score or a price are listed as unplaceable, never guessed.
+
+## Keep the data current
+
+The only job here needing judgment is knowing whether the inputs are stale and going to
+get them. Everything else is arithmetic.
+
+```bash
+python scripts/refresh_plan.py    # the work order: what's stale, what's missing, where to edit
+/refresh-data                     # hand that order to an agent (Claude Code slash command)
+python scripts/sotw.py update     # after data changes: re-solve docs, plots, reports, checks
+```
+
+`refresh_plan.py --json` emits the same order machine-readable. Every figure carries a
+pull date and a confidence tag; nothing gets invented, and estimates never get promoted to
+facts.
+
+## What else you get
+
 - `REPORT.md`: answer, findings, freshness on one page
-- `reports/latest-tokens.md` and `reports/latest-compute.md`: the deep dives
-- Two plots, staleness flags, and the test suite guarding the conclusions
+- `reports/latest-tokens.md`, `reports/latest-compute.md`: the deep dives
+- `python scripts/sotw.py`: the answer plus what's stale
+- `pytest`: the checks guarding every conclusion
+
+## The defaults, if you just want the answer
 
 <!-- gen:the_answer -->
 ```text
@@ -70,22 +115,15 @@ value in `history`, run `python scripts/sotw.py update`. The knobs that matter:
 | Prices and scores | `model_pricing.yaml`, `benchmarks.yaml` | dated per entry | the whole token answer |
 <!-- /gen:knobs -->
 
-## Pick your axis
+One rule behind all of it: no static numbers. Every figure here is solved from
+`data/*.yaml` at build time. If a conclusion flips, a test fails and the flip goes in the
+changelog.
 
-The compute pick optimizes a formula, and which formula is your call:
+## The default-parameter view
 
-- **Value** (the default): Psi = TCO / (work x years), dollars per SPECrate-point-year,
-  lower wins. Capex, watts, cooling, and hold period all fold in.
-- **Efficiency**: SPECrate points per wall watt. Pick this axis when watts are the
-  constraint: a capped circuit, a thermal envelope, a UPS budget.
-
-The two axes disagree on the winner right now (a test asserts it), which is why both are
-solved and plotted instead of merged:
+What the curves look like at the defaults. Yours will differ; that is the point.
 
 ![Compute per watt vs Psi](analysis/assets/compute_per_watt.png)
-
-Tokens has its own axis pair, capability vs cost per task, and the frontier is currently
-a cliff: a cheap near-frontier tier, an expensive frontier tier, nothing in between.
 
 ![Capability vs cost Pareto frontier](analysis/assets/pareto_frontier.png)
 
@@ -159,7 +197,7 @@ REPORT.md      the output: answer, findings, freshness on one solved page
 reports/       latest-tokens.md and latest-compute.md, per-question deep reports
 data/          every figure: value, unit, date, source, confidence (the only ground truth)
 models/        models 1-5 as pure functions, no I/O
-scripts/       sotw, the solver, table generator, staleness gate, plots
+scripts/       razor (the CLI), refresh_plan, sotw, the solver, generators, plots
 tests/         formula checks, workbook parity, conclusions-as-relations
 analysis/      one document per finding, prose around solved tables
 spreadsheets/  the original interactive Psi workbook (kept in parity by test)
@@ -183,5 +221,9 @@ spreadsheets/  the original interactive Psi workbook (kept in parity by test)
   world is one command to read and one command to refresh.
 - **2026-08-29** README rewritten usage-first: run it, what you get, what you can change,
   pick your axis. The knobs table is generated so its current values can never go stale.
+- **2026-08-31** `scripts/razor.py`: the operator declares brightlines (min score, budget,
+  burn, watt cap, work floor) and picks the objective; the tool shaves what fails and
+  plots what survives to `out/`. Added `scripts/refresh_plan.py` and the `/refresh-data`
+  command so keeping the data current is the only judgment call left in the loop.
 
 MIT. See `LICENSE`.

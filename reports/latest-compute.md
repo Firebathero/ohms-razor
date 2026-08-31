@@ -2,7 +2,7 @@
 
 The compute question (what do I buy for deterministic work), solved from `data/` by `python scripts/sotw.py compute`. Nothing here is hand-typed; git history is the archive of previous states.
 
-**Last solved:** 2026-08-29. **3 figure(s) past their freshness window** (run `python scripts/check_staleness.py`).
+**Last solved:** 2026-08-31. **3 figure(s) past their freshness window** (run `python scripts/check_staleness.py`).
 
 ## The answer
 

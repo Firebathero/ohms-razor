@@ -1,3 +1,6 @@
+# razor.py output: your params, your graphs, not the repo's
+out/
+
 __pycache__/
 *.pyc
 .pytest_cache/

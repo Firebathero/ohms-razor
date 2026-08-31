@@ -125,12 +125,15 @@ def cmd_update() -> int:
             "weaken the test; record the reversal in the README changelog (see CONTRIBUTING.md)."
         )
         return 1
-    flagged = [r for r in check_staleness.collect() if r.status != "fresh"]
-    if flagged:
-        print(f"\nStill needing a manual re-pull ({len(flagged)}):")
-        for r in flagged:
-            print(f"  {r.label}  ({r.days_old}d old, window {r.window_days or '-'}d)")
-        print("Sources are in data/SOURCES.md. Update the YAML, keep old values in history, rerun.")
+    import refresh_plan
+
+    work = refresh_plan.build()
+    if work:
+        top = [i for i in work if i.priority <= 2]
+        print(f"\n{len(work)} data items need pulling ({len(top)} at priority 1-2). Top of the order:")
+        for i in work[:5]:
+            print(f"  [P{i.priority}] {i.figure}  ({i.detail})")
+        print("Full order: python scripts/refresh_plan.py    Have an agent do it: /refresh-data")
     print("\nState of the world is solved. Review the diff, then commit with a data: prefix.")
     return 0
 

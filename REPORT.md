@@ -6,7 +6,7 @@ the answer alone, run `python scripts/answer.py`. For mechanisms, sensitivities,
 would falsify each finding, see `analysis/`.
 
 <!-- gen:last_solved -->
-**Last solved:** 2026-08-29. **3 figure(s) past their freshness window** (run `python scripts/check_staleness.py`).
+**Last solved:** 2026-08-31. **3 figure(s) past their freshness window** (run `python scripts/check_staleness.py`).
 <!-- /gen:last_solved -->
 
 ## The answer
