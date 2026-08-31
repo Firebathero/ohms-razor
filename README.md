@@ -98,9 +98,9 @@ facts. A survey that finds nothing still records that it ran.
 <!-- gen:the_answer -->
 ```text
 THE COMPUTE QUESTION  (deterministic work: builds, simulation, batch jobs)
-  own it           AMD EPYC 9965 at $2.04 per SPECrate-point-year all-in over 10 years
-  renting instead  4.2x to 8.1x the cost of owning, same unit
-  watts binding?   AMD EPYC 9845 is the efficiency pick at 2.96 pts per wall watt
+  own it           AMD EPYC 9965 at $2.20 per SPECrate-point-year all-in over 10 years
+  renting instead  3.9x to 7.5x the cost of owning, same unit
+  watts binding?   AMD EPYC 9845 is the efficiency pick at 2.68 pts per wall watt
 
 THE TOKENS QUESTION  (thinking)
   default          glm-5.3-flash: AA 57, $0.090/task, $1,915 for the 10-yr reference workload at list ($958 on promo through 2026-09-09)
@@ -108,7 +108,7 @@ THE TOKENS QUESTION  (thinking)
   local inference  no: the best passing local config runs 4.1x cloud cost at AA 24
   the local box    hosts the agent: orchestration, sandboxes, a small resident triage model
 
-Caveats, solved with the answer: The frontier tier is for rare calls, not the loop: pricing the reference workload against its 26 priced models runs from $12,348 (glm-5, 6x the default) to $756,000 (gpt-5.5-pro, 395x). Every price is VOLATILE; run scripts/check_staleness.py before trusting. And the harder caveat: 1 candidate set (CPU candidates for the compute node) has never been surveyed for entrants, so that pick is the best of an inherited list, not the best available. Run /refresh-data to re-open it.
+Caveats, solved with the answer: The frontier tier is for rare calls, not the loop: pricing the reference workload against its 26 priced models runs from $12,348 (glm-5, 6x the default) to $756,000 (gpt-5.5-pro, 395x). Every price is VOLATILE; run scripts/check_staleness.py before trusting.
 ```
 <!-- /gen:the_answer -->
 
@@ -120,12 +120,12 @@ supposed to cover and when that question was last actually asked:
 <!-- gen:survey_status -->
 | Candidate set | In catalog | Fully placeable | Last surveyed | Status |
 |---|---:|---|---|---|
-| CPU candidates for the compute node | 4 | 4 priced, 4 screenable | never | **never surveyed** |
+| CPU candidates for the compute node | 124 | 119 priced, 123 screenable | 2026-08-31 | current |
 | hosted models for the token tiers | 97 | see report | 2026-08-31 | current |
 | local machines for on-box inference | 37 | see report | 2026-08-31 | current |
 | the capability axis itself | 49 | 32 costed | 2026-08-31 | current |
 
-1 of 4 candidate sets were inherited from the original research and have never been re-opened. Every ranking drawn from them is "best of these", not "best available". Run `python scripts/refresh_plan.py` for the survey scope and where to look, or `/refresh-data` to have an agent do it.
+Every candidate set has been surveyed inside its interval.
 <!-- /gen:survey_status -->
 
 ## What you can change
@@ -185,7 +185,7 @@ A box that can't sustain that rate can't produce the workload at any duty cycle.
 | F4 | Even when local passes, it loses | $0.70/M local vs $0.17/M cloud, same weights, fully saturated: 4.1x | 2026-08-29 |
 | F5 | The local box is for hosting, not inference | Thesis; see README | |
 | F6 | The hardware scarcity is a supply story, not a demand story | Two defensible readings; both presented in analysis 06 | 2026-08-25 |
-| F7 | Owning beats renting for deterministic compute | AMD EPYC 9965 at $2.04/pt-yr; renting runs 4.2x to 8.1x owning | 2026-06-15 |
+| F7 | Owning beats renting for deterministic compute | AMD EPYC 9965 at $2.20/pt-yr; renting runs 3.9x to 7.5x owning | 2026-06-15 |
 <!-- /gen:findings_summary -->
 
 Full write-ups, including what would falsify each one: `analysis/01` through `analysis/06`.
@@ -196,14 +196,15 @@ Up front on purpose. Details in `analysis/`.
 
 - Local figures assume batch size 1; batching is modelled in `analysis/04` but not measured
 - The 9965's 450W derate (phi 0.99) is an estimate, nobody has measured it
-- 1P SPECrate is scaled from 2P; rankings survive, absolute levels inherit the error
-- The 9845 has a single SPECrate submission
+- Most of the surveyed CPU field is ranked on vendor list price, an upper bound on street,
+  flagged as "list" in every table; only six candidates carry a street price
+- Every socket is charged the same board, chassis, PSU and cooler, priced off the SP5 build
+- DDR4 platforms are excluded because the memory model has no DDR4 price, not because they
+  were judged to lose
 - The Mac Studio M5 Ultra price is a guess, tagged ESTIMATE
 - Index parity is not task parity
 - 10-year amortization is aggressive; numbers roughly double at 5
 - The supply-vs-demand finding has a live counter-reading, presented in `analysis/06`
-- Three of four candidate sets have never been surveyed for entrants, so every ranking is
-  "best of these", not "best available" (see the survey table above)
 
 ## Trust
 
@@ -212,7 +213,7 @@ Up front on purpose. Details in `analysis/`.
 |---|---:|---|---|---|
 | benchmarks | 1 | 2026-08-31 | 60d | fresh |
 | dram | 1 | 2026-08-14 | 14d | **1 flagged** |
-| hardware_pricing | 43 | 2026-06-15 | 30d | **2 flagged** |
+| hardware_pricing | 45 | 2026-06-15 | 30d | **2 flagged** |
 | model_pricing | 98 | 2026-08-29 | 30d | fresh |
 
 SPECrate submissions never expire and are not policed.
@@ -290,5 +291,31 @@ spreadsheets/  the original interactive Psi workbook (kept in parity by test)
   rival, the frontier baseline, the MoE exemplar, and the derate footnote are all solved
   now), and converted incumbent-pinning tests into property tests plus one explicit
   `INCUMBENTS` map that fails loudly when a winner is displaced.
+- **2026-08-31 — CPU survey: 4 candidates to 124, and the incumbent held.** The last
+  unsurveyed set is closed. Parsed all 13,179 published SPEC CPU2017 integer-rate results
+  and kept the 2,876 single-chip ones, then cross-matched against AMD, Intel and Ampere
+  spec tables. The field went from one vendor on one socket to three vendors on six:
+  EPYC 9005 and 9004, EPYC 8005 "Sorano" and 8004 "Siena", EPYC 4005, Intel Xeon 6
+  Granite Rapids and Sierra Forest, Xeon 6+ Clearwater Forest, and AmpereOne.
+  **The EPYC 9965 still wins on Psi and the 9845 still wins on perf/watt**, so no
+  conclusion reversed. The result worth having is the margin: **114 of 118 contenders
+  cannot reach the winner's Psi even if their CPU were free**, because memory, platform
+  and ten years of electricity already cost more per point than the winner's whole build.
+  That conclusion does not depend on finishing the price research, which matters because
+  113 of 119 priced candidates carry only a vendor list price.
+  Three things changed in the method. **Work rate is now a measured 1P result**, not a 2P
+  result scaled by a sigma calibrated on one part; the scaled numbers ran 5 to 8 percent
+  high across all four inherited candidates, and the winner's rate fell from 1,634 to
+  1,510 points. **Memory is sized to the socket**, so a six-channel SP6 part is charged
+  for six DIMMs rather than twelve, which stopped memory from cancelling out of the
+  ranking and put a `--min-memory-gb` brightline in the razor: without one, dollars per
+  point happily picks a 192GB box over a 384GB box. **Virtual-machine SPEC submissions are
+  excluded**: HPE published eight EPYC 9965 results at 153-163 points from a VM whose
+  disclosure still names 192 cores, against a real 1,525.
+  Also found: spec.org's "All Published Results" index silently stopped being regenerated
+  on 2025-02-11, so anyone pulling only that page misses eighteen months of submissions;
+  the quarterly indexes carry the rest. New gaps recorded rather than papered over: the
+  BOM is priced for SP5 only, DDR4 platforms are excluded for want of a DDR4 price, and
+  Zen 6 "Venice" is excluded because no SPEC result exists for it yet.
 
 MIT. See `LICENSE`.

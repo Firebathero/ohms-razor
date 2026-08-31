@@ -94,13 +94,18 @@ memory_pricing:
 # ranking. Memory is priced from memory_config x memory_pricing at solve time.
 server_bom:
   - id: motherboard
+    socket: SP5
     spec: Gigabyte MZ33-AR1 (SP5, E-ATX, 24x DDR5 RDIMM, cTDP to 500W, 4x PCIe5 x16, 2x 10GbE, IPMI)
     unit_usd: 900
     confidence: CONFIRMED
     source: sources#motherboard
     note: >-
-      Supports every candidate including the 500W parts; the board Phoronix benched the
-      9745 on. Phoronix put it near $700; eBay/Newegg run $1,000-1,250.
+      Supports every SP5 candidate including the 500W parts; the board Phoronix benched the
+      9745 on. Phoronix put it near $700; eBay/Newegg run $1,000-1,250. The 2026-08-31 CPU
+      survey brought SP6, LGA4710, LGA7529, FCLGA5964 and AM5 candidates into the catalog
+      and they are all charged this same board price, which is a known gap the refresh plan
+      carries. It is second-order next to memory: at current DRAM the board is about 4
+      percent of capex.
   - id: chassis
     spec: 4U rackmount, SP5 clearance, front-to-back airflow
     unit_usd: 350

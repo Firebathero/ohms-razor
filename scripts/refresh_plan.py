@@ -173,6 +173,51 @@ def build(today: date | None = None) -> list[Item]:
     except (ValueError, KeyError):
         pass  # no priced baseline yet; the survey items already cover that
 
+    # A list price is an upper bound, so a list-priced part's rank can only improve. The
+    # ones worth chasing are the few that could still reach the winner's Psi; the rest
+    # cannot get there even at a CPU price of zero, and their price does not matter.
+    try:
+        listed = {c.name for c in repo_data.cpu_inputs() if c.priceable and c.price_is_list}
+        for name, tie, have in repo_data.solve_tie_prices():
+            if name in listed and tie > 0:
+                items.append(
+                    Item("gap", f"street price: {name}", "data/cpu_specs.yaml",
+                         f"candidates[name={name}].price_street_usd", "sources#cpu-prices",
+                         f"ranked on a ${have:,.0f} list price, which is an upper bound; it "
+                         f"ties the winner at ${tie:,.0f}, so a real street price could move it",
+                         2)
+                )
+    except (ValueError, KeyError):
+        pass
+
+    # The BOM is priced for one socket. Once the catalog spans several, every other socket
+    # is borrowing that board price.
+    a = repo_data.load("assumptions")
+    bom_socket = next(
+        (i.get("socket") for i in a["server_bom"] if i.get("socket")), None
+    )
+    if bom_socket:
+        others = sorted(
+            {c.get("socket") for c in repo_data.load("cpu_specs")["candidates"]
+             if c.get("socket") and c.get("socket") != bom_socket}
+        )
+        if others:
+            items.append(
+                Item("gap", "per-socket build cost", "data/assumptions.yaml", "server_bom",
+                     "sources#motherboard",
+                     f"the BOM is priced for {bom_socket} only; candidates on "
+                     f"{', '.join(others)} are charged the same board, chassis, PSU and "
+                     "cooler, which no longer cancels out of the ranking", 2)
+            )
+    if "ddr4_3200_rdimm_usd_per_gb" not in a["memory_pricing"]:
+        items.append(
+            Item("gap", "DDR4 RDIMM price", "data/assumptions.yaml",
+                 "memory_pricing.ddr4_3200_rdimm_usd_per_gb", "sources#dram",
+                 "memory is the dominant capex term, so DDR4 platforms (EPYC 7002/7003, "
+                 "Ampere Altra) could plausibly win; without a DDR4 price the survey has to "
+                 "exclude them rather than rank them", 2)
+        )
+
     cov = repo_data.cpu_coverage()
     for name in cov.unplaceable:
         items.append(

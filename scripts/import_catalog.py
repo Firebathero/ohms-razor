@@ -45,8 +45,9 @@ SCHEMAS: dict[str, dict[str, Any]] = {
         "columns": [
             "id", "name", "vendor", "cores", "architecture", "l3_mb",
             "tdp_default_w", "ctdp_floor_w", "mem_bandwidth_gb_s",
-            "specrate_2p", "specrate_2p_systems", "specrate_1p",
-            "price_street_usd", "price_note", "source", "confidence",
+            "socket", "socket_count", "memory_channels", "memory_speed_mts",
+            "specrate_2p", "specrate_2p_systems", "specrate_1p", "specrate_1p_note",
+            "price_list_usd", "price_street_usd", "price_note", "source", "confidence",
         ],
     },
     "models": {
@@ -93,12 +94,13 @@ def blank(v: str | None) -> bool:
 
 def typed(column: str, raw: str) -> Any:
     if column in {"id", "name", "vendor", "tier", "architecture", "source", "confidence",
-                  "notes", "price_note", "specrate_2p_systems", "form_factor",
+                  "notes", "price_note", "specrate_2p_systems", "specrate_1p_note",
+                  "socket", "socket_count", "form_factor",
                   "machine_id", "model", "quant", "note"}:
         return raw.strip()
     if column == "open_weights":
         return raw.strip().lower() in {"true", "yes", "y", "1"}
-    if column in {"cores", "l3_mb", "memory_gb_max", "context_window"}:
+    if column in {"cores", "l3_mb", "memory_gb_max", "context_window", "memory_channels"}:
         return int(float(raw.strip().replace(",", "")))
     return float(raw.strip().replace(",", "").replace("$", ""))
 
@@ -112,7 +114,9 @@ def nest(kind: str, row: dict[str, Any], today: date) -> dict[str, Any]:
         systems = row.pop("specrate_2p_systems", None)
         rate = row.pop("specrate_2p", None)
         one_p = row.pop("specrate_1p", None)
+        one_p_note = row.pop("specrate_1p_note", None)
         price = row.pop("price_street_usd", None)
+        price_list = row.pop("price_list_usd", None)
         price_note = row.pop("price_note", None)
         out.update(row)
         if rate is not None:
@@ -123,7 +127,14 @@ def nest(kind: str, row: dict[str, Any], today: date) -> dict[str, Any]:
                 **({"submissions_note": systems} if systems else {}),
             }
         if one_p is not None:
-            out["specrate_1p"] = {"value_used": one_p, "confidence": conf, "source": src}
+            out["specrate_1p"] = {
+                "value_used": one_p, "confidence": conf, "source": src,
+                **({"note": one_p_note} if one_p_note else {}),
+            }
+        if price_list is not None:
+            out["price_list_usd"] = price_list
+            out["price_list_confidence"] = "CONFIRMED"
+            out["price_list_note"] = "vendor list price at launch, an upper bound on street"
         if price is not None:
             out["price_street_usd"] = price
             out["price_confidence"] = "VOLATILE"

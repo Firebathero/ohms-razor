@@ -105,6 +105,18 @@ class TestComputeThresholds:
     def test_impossible_combination_returns_nothing(self):
         assert razor.solve_compute(0.0, 100.0, "value").winner is None
 
+    def test_memory_floor_excludes_the_narrow_sockets(self):
+        """Dollars per point has no opinion about how much memory the box holds, so a
+        six-channel socket can win on the metric while failing a requirement the operator
+        never wrote down. The floor is where they write it down."""
+        loose = razor.solve_compute(0.0, None, "value")
+        narrow = [c for c in loose.candidates if c.memory_gb and c.memory_gb < 384]
+        assert narrow, "no narrow-socket candidate in the catalog to test the floor against"
+        floored = razor.solve_compute(0.0, None, "value", min_memory_gb=384.0)
+        assert floored.winner is not None
+        assert floored.winner.memory_gb >= 384.0
+        assert any("floor" in c.excluded_by for c in floored.candidates if c.memory_gb == 192)
+
 
 class TestBreadth:
     """A candidate that nobody has priced must stay in the running on the axis that needs

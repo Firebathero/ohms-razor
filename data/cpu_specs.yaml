@@ -1,218 +1,2721 @@
 # CPU candidates for the deterministic-compute node (Model 5, Psi). SPECrate submissions
-# never expire; street prices carry a 30-day window. The 1P scaling factor sigma and the
-# cTDP derates phi are the two most important non-measured numbers in the repo and are
-# tagged accordingly everywhere they appear.
+# never expire; street prices carry a 30-day window. Every candidate is ranked on a
+# published single-chip int_base result where one exists, so the sigma scaling below is now
+# a fallback rather than the main path.
 
 # WHAT THIS LIST IS SUPPOSED TO COVER. Without this block the candidate set is whatever
 # happened to come up in one conversation, and it never gets re-opened. The survey is the
 # mechanism for re-examining priors: it says what belongs here, where to look for new
 # entrants, and when the question was last actually asked.
 survey:
-  question: >-
-    Which single-socket server CPUs could plausibly win on dollars per unit of sustained
-    throughput for an always-on home or small-office compute node?
+  question: Which single-socket server CPUs could plausibly win on dollars per unit of sustained throughput
+    for an always-on home or small-office compute node?
   inclusion_criteria:
-    - single-socket capable (P-series or 1P-validated), since the model prices a 1P node
-    - available new through normal channels, or credibly available used at a tracked price
-    - a published SPECrate 2017 int_base result, or one derivable from a published ratio
-    - fits a standard SP5/LGA-class board and a 1000W-class PSU
+  - 1P-validated, which the survey reads as "somebody published a single-chip SPECrate result",
+    since that is evidence rather than a reading of a spec sheet
+  - available new through normal channels, or credibly available used at a tracked price
+  - a published SPECrate 2017 int_base result, or one derivable from a published ratio
+  - a DDR5 platform on a standard socket the operator can actually buy a board for
   out_of_scope:
-    - dual-socket-only parts (the model prices one socket)
-    - GPUs and accelerators (different workload; the token side covers inference)
-    - cloud instance types (priced separately under rental_offers)
+  - parts with no published single-chip result (a 2P-only number needs a scaling assumption)
+  - GPUs and accelerators (different workload; the token side covers inference)
+  - cloud instance types (priced separately under rental_offers)
+  - DDR4 platforms, until the memory model carries a DDR4 price; see considered_and_excluded
   where_to_look:
-    - spec.org SPECrate 2017 int_base submissions, filtered to recent server parts
-    - AMD EPYC, Intel Xeon, and Ampere product pages for parts shipped since the last survey
-    - Phoronix and ServeTheHome launch coverage for parts without SPEC submissions yet
-  last_surveyed: null
+  - spec.org, all published CPU2017 integer-rate results, filtered to one enabled chip
+  - the quarterly result indexes at spec.org/cpu2017/results/res<YYYY>q<N>/, because the
+    all-results page rint2017.html stopped being regenerated on 2025-02-11
+  - AMD EPYC, Intel Xeon, and Ampere product pages for parts shipped since the last survey
+  - Phoronix and ServeTheHome launch coverage for parts without SPEC submissions yet
+  last_surveyed: 2026-08-31
   survey_interval_days: 90
-  confidence: TODO
+  confidence: CONFIRMED
+  method: >-
+    Parsed every published CPU2017 integer-rate result from spec.org (13,179 results, newest
+    2026-08-10) and kept the 2,876 with one enabled chip. Virtual-machine submissions were
+    dropped: HPE published eight EPYC 9965 results at 153-163 points against a real 1,525,
+    because the VM saw a slice of the socket while the disclosure still names 192 cores.
+    Cross-matched what remained against the vendor spec tables for TDP, socket, memory
+    channels and list price. Work rate is the median of a part's single-chip submissions,
+    with the count and range recorded on every entry.
   note: >-
-    NEVER SURVEYED. The four candidates below were inherited from the research handoff,
-    which compared them against each other and did not record what else was considered or
-    why anything was left out. They are all AMD Zen 5 / 5c, which is a strong prior nobody
-    has tested: no Intel Xeon 6, no Ampere, no Zen 6 part, no previous-generation EPYC at
-    a collapsed used price. Until a real survey runs, read every ranking here as "best of
-    these four", not "best available".
-  considered_and_excluded: []   # nothing recorded; see note
-
+    First real survey. The candidate set went from 4 to 124, from one vendor to three, and
+    every candidate now rests on a measured 1P result instead of a 2P result scaled by a
+    sigma calibrated on one part. The four inherited candidates all survived: the EPYC 9965
+    still wins on Psi. The result that matters more is that 114 of 118 contenders cannot
+    reach its Psi even at a CPU price of zero, so the conclusion no longer depends on
+    finishing the price research. What the survey did NOT settle is price basis: 113 of 119
+    priced candidates carry only a vendor list price, which is an upper bound, so their true
+    rank can only improve.
+  considered_and_excluded:
+  - what: AMD EPYC 9006 "Venice" and "Venice Dense" (Zen 6, up to 256 cores, SP7/SP8)
+    why: >-
+      Announced 2026-07-23 with list prices published, but no CPU2017 result of any kind has
+      been submitted as of this survey, and it needs a new socket and board. Ranking it would
+      mean inventing its work rate.
+    revisit: the moment a single-chip int_base result appears; this is the likeliest displacer
+  - what: DDR4 platforms (EPYC 7002/7003 on SP3, Ampere Altra and Altra Max)
+    why: >-
+      They are real single-socket parts with published 1P results and collapsed used prices,
+      and memory is the dominant capex term, so a cheaper memory generation could plausibly
+      win. Excluded only because the model has no DDR4 RDIMM price to solve with. This is a
+      data gap, not a judgment that they lose.
+    revisit: add ddr4_3200_rdimm_usd_per_gb to assumptions.yaml, then re-run this survey
+  - what: dual-socket configurations
+    why: the model prices one socket, one board, one PSU; a 2P build is a different machine
+    revisit: only if the workload outgrows what one socket delivers
+  - what: Intel Xeon 6 SKUs with no published single-chip result
+    why: placing them would require scaling a 2P number by a sigma calibrated on an AMD part
+    revisit: quarterly, as new submissions land
+  - what: Intel Xeon 6978P
+    why: >-
+      A single-chip result exists (1,140 points) but no TDP or list price has been
+      transcribed, so it is in the catalog and reported as unplaceable rather than dropped.
+    revisit: transcribe from Intel ARK; it is the only unplaceable entry in the catalog
+# The 1P/2P scaling factor. Since the 2026-08-31 survey every candidate carries its own
+# published single-chip result, so this is a fallback for a future entrant that has only a
+# 2P submission, plus the cross-check that showed the scaling was running 5 to 8 percent
+# high. It stays tagged DERIVED everywhere it appears.
 calibration:
   sigma_1p_scaling:
     value: 0.5256
     confidence: DERIVED
     date: 2026-08-29
     source: sources#specrate
-    note: >-
-      1P/2P ratio calibrated on the EPYC 9745, the only candidate with both published:
-      1P 1,230 / 2P 2,340 = 0.5256. Applied identically to every candidate, so it cancels
-      out of the ranking even if it is off in absolute terms.
-
+    note: '1P/2P ratio calibrated on the EPYC 9745, the only candidate with both published: 1P 1,230 /
+      2P 2,340 = 0.5256. Applied identically to every candidate, so it cancels out of the ranking even
+      if it is off in absolute terms.'
+# The surveyed field. Every entry carries the median of its published single-chip
+# int_base submissions with the count and range in the note, the socket and memory
+# channel count the build is sized from, and a price that is either street (what the part
+# costs) or vendor list (an upper bound on what it costs). A candidate missing a figure
+# stays in the file and is reported as unplaceable; nothing is dropped to tidy the list.
 candidates:
-  - id: epyc-9965
-    name: AMD EPYC 9965
-    cores: 192
-    architecture: Zen 5c
-    l3_mb: 384
-    tdp_default_w: 500
-    ctdp_floor_w: 450
-    mem_bandwidth_gb_s: 614
-    specrate_2p:
-      submissions:
-        - {value: 3230, system: ASUS RS720A-E13}
-        - {value: 3150, system: Kaytus KR1280V3}
-        - {value: 3130, system: H3C R4950 G7}
-        - {value: 3100, system: Gigabyte R183-Z93}
-      value_used: 3140
-      confidence: MEASURED
-      source: sources#specrate
-    run_ctdp_w: 450
-    phi:
-      value: 0.99
-      confidence: ESTIMATE
-      note: >-
-        Nobody published 450W vs 500W on the 9965. Extrapolated from the 9745 measurement
-        (0.98 at a 20 percent TDP cut) for the smaller 10 percent cut. This is a judgment
-        call, not a measurement, and the 9965-vs-9845 perf/watt comparison sits inside its
-        error bar.
-    price_street_usd: 7000
-    price_confidence: VOLATILE
-    price_date: 2026-08-29
-    price_note: US eBay new listings about $6,995; TechRadar tracked sub-$6,000 new in Jun-2026
-    price_history:
-      - {field: msrp_1ku_usd, value: 14813, note: launch}
-      - {field: msrp_1ku_usd, value: 11988, note: current 1kU after AMD cut}
-
-  - id: epyc-9845
-    name: AMD EPYC 9845
-    cores: 160
-    architecture: Zen 5c
-    l3_mb: 320
-    tdp_default_w: 390
-    ctdp_floor_w: 320
-    mem_bandwidth_gb_s: 614
-    specrate_2p:
-      submissions:
-        - {value: 2620, system: Dell PowerEdge M7725, date: 2025-03}
-      value_used: 2620
-      confidence: MEASURED
-      note: single published result; the thinnest evidence of the four (handoff weakness 4)
-      source: sources#specrate
-    run_ctdp_w: 320
-    phi:
-      value: 0.98
-      confidence: DERIVED
-      note: measured on the 9745 at the same 320W floor; assumed to transfer within Zen 5c
-    price_street_usd: 9684
-    price_confidence: VOLATILE
-    price_date: 2026-08-29
-    price_note: IT Creations, new unlocked tray. Never saw the discounting the 9965 did.
-    price_history:
-      - {field: msrp_1ku_usd, value: 11411, note: current 1kU}
-
-  - id: epyc-9755
-    name: AMD EPYC 9755
-    cores: 128
-    architecture: Zen 5
-    l3_mb: 512
-    tdp_default_w: 500
-    ctdp_floor_w: 500
-    mem_bandwidth_gb_s: 614
-    specrate_2p:
-      submissions: []
-      value_used: 2589
-      confidence: DERIVED
-      note: >-
-        No published SPECrate found. Back-solved from Phoronix: the 9745 lands at about 90
-        percent of the 9755 across a 555-benchmark geomean. The softest work-rate number in
-        the set.
-      source: sources#specrate
-    run_ctdp_w: 500
-    phi:
-      value: 1.0
-      confidence: DEFINITION
-      note: runs at stock; no derate applied
-    price_street_usd: 6500
-    price_confidence: VOLATILE
-    price_date: 2026-08-29
-    price_note: Phoronix noted about $7,200 at major retailers Mar-2026; an eBay dealer listed $6,169
-
-  - id: epyc-9745
-    name: AMD EPYC 9745
-    cores: 128
-    architecture: Zen 5c
-    l3_mb: 256
-    tdp_default_w: 400
-    ctdp_floor_w: 320
-    mem_bandwidth_gb_s: 614
-    specrate_2p:
-      submissions:
-        - {value: 2400, system: Dell R7725}
-        - {value: 2340, system: Dell R6725}
-        - {value: 2300, system: Lenovo SR665 V3}
-        - {value: 2290, system: Fujitsu RX2450 M2}
-      value_used: 2330
-      confidence: MEASURED
-      note: >-
-        The workbook states median 2,330 and uses it; the strict median of the four
-        submissions is 2,320. Kept at 2,330 for workbook parity; the 0.4 percent wobble
-        does not move any ranking. Flagged rather than silently corrected.
-      source: sources#specrate
-    specrate_1p:
-      submissions:
-        - {value: 1270, system: ASUS RS520QA}
-        - {value: 1230, system: xFusion 2158H V8}
-        - {value: 1170, system: Dell R6715}
-      confidence: MEASURED
-      note: used only to calibrate sigma, and to sanity-check the scaled work rates
-      source: sources#specrate
-    run_ctdp_w: 320
-    phi:
-      value: 0.98
-      confidence: MEASURED
-      note: Phoronix, 555-benchmark geomean, 320W vs 400W on the Gigabyte MZ33-AR1
-      source: sources#phi-derate
-    price_street_usd: 7200
-    price_confidence: VOLATILE
-    price_date: 2026-08-29
-    price_note: Phoronix Mar-2026; IT Creations $7,950-8,340
-    price_history:
-      - {field: msrp_1ku_usd, value: 12141, note: launch}
-      - {field: msrp_1ku_usd, value: 10588, note: current 1kU after AMD cut}
-
+- id: epyc-9965
+  name: AMD EPYC 9965
+  cores: 192
+  architecture: Zen 5c
+  l3_mb: 384
+  tdp_default_w: 500
+  ctdp_floor_w: 450
+  mem_bandwidth_gb_s: 614
+  specrate_2p:
+    submissions:
+    - value: 3230
+      system: ASUS RS720A-E13
+    - value: 3150
+      system: Kaytus KR1280V3
+    - value: 3130
+      system: H3C R4950 G7
+    - value: 3100
+      system: Gigabyte R183-Z93
+    value_used: 3140
+    confidence: MEASURED
+    source: sources#specrate
+  run_ctdp_w: 450
+  phi:
+    value: 0.99
+    confidence: ESTIMATE
+    note: Nobody published 450W vs 500W on the 9965. Extrapolated from the 9745 measurement (0.98 at a
+      20 percent TDP cut) for the smaller 10 percent cut. This is a judgment call, not a measurement,
+      and the 9965-vs-9845 perf/watt comparison sits inside its error bar.
+  price_street_usd: 7000
+  price_confidence: VOLATILE
+  price_date: 2026-08-29
+  price_note: US eBay new listings about $6,995; TechRadar tracked sub-$6,000 new in Jun-2026
+  price_history:
+  - field: msrp_1ku_usd
+    value: 14813
+    note: launch
+  - field: msrp_1ku_usd
+    value: 11988
+    note: current 1kU after AMD cut
+  vendor: AMD
+  socket: SP5
+  socket_count: 1P/2P
+  memory_channels: 12
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 1525.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 12 published 1-chip int_base results, range 1260-1630, newest 2025-11-20
+  price_list_usd: 14813.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9845
+  name: AMD EPYC 9845
+  cores: 160
+  architecture: Zen 5c
+  l3_mb: 320
+  tdp_default_w: 390
+  ctdp_floor_w: 320
+  mem_bandwidth_gb_s: 614
+  specrate_2p:
+    submissions:
+    - value: 2620
+      system: Dell PowerEdge M7725
+      date: 2025-03
+    value_used: 2620
+    confidence: MEASURED
+    note: single published result; the thinnest evidence of the four (handoff weakness 4)
+    source: sources#specrate
+  run_ctdp_w: 320
+  phi:
+    value: 0.98
+    confidence: DERIVED
+    note: measured on the 9745 at the same 320W floor; assumed to transfer within Zen 5c
+  price_street_usd: 9684
+  price_confidence: VOLATILE
+  price_date: 2026-08-29
+  price_note: IT Creations, new unlocked tray. Never saw the discounting the 9965 did.
+  price_history:
+  - field: msrp_1ku_usd
+    value: 11411
+    note: current 1kU
+  vendor: AMD
+  socket: SP5
+  socket_count: 1P/2P
+  memory_channels: 12
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 1250.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 16 published 1-chip int_base results, range 973-1360, newest 2026-04-02
+  price_list_usd: 13564.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9755
+  name: AMD EPYC 9755
+  cores: 128
+  architecture: Zen 5
+  l3_mb: 512
+  tdp_default_w: 500
+  ctdp_floor_w: 500
+  mem_bandwidth_gb_s: 614
+  specrate_2p:
+    submissions: []
+    value_used: 2589
+    confidence: DERIVED
+    note: 'No published SPECrate found. Back-solved from Phoronix: the 9745 lands at about 90 percent
+      of the 9755 across a 555-benchmark geomean. The softest work-rate number in the set.'
+    source: sources#specrate
+  run_ctdp_w: 500
+  phi:
+    value: 1.0
+    confidence: DEFINITION
+    note: runs at stock; no derate applied
+  price_street_usd: 6500
+  price_confidence: VOLATILE
+  price_date: 2026-08-29
+  price_note: Phoronix noted about $7,200 at major retailers Mar-2026; an eBay dealer listed $6,169
+  vendor: AMD
+  socket: SP5
+  socket_count: 1P/2P
+  memory_channels: 12
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 1260.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 7 published 1-chip int_base results, range 853-1410, newest 2025-11-17
+  price_list_usd: 12984.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9745
+  name: AMD EPYC 9745
+  cores: 128
+  architecture: Zen 5c
+  l3_mb: 256
+  tdp_default_w: 400
+  ctdp_floor_w: 320
+  mem_bandwidth_gb_s: 614
+  specrate_2p:
+    submissions:
+    - value: 2400
+      system: Dell R7725
+    - value: 2340
+      system: Dell R6725
+    - value: 2300
+      system: Lenovo SR665 V3
+    - value: 2290
+      system: Fujitsu RX2450 M2
+    value_used: 2330
+    confidence: MEASURED
+    note: The workbook states median 2,330 and uses it; the strict median of the four submissions is 2,320.
+      Kept at 2,330 for workbook parity; the 0.4 percent wobble does not move any ranking. Flagged rather
+      than silently corrected.
+    source: sources#specrate
+  specrate_1p:
+    submissions:
+    - value: 1270
+      system: ASUS RS520QA
+    - value: 1230
+      system: xFusion 2158H V8
+    - value: 1170
+      system: Dell R6715
+    value_used: 1155.0
+    confidence: MEASURED
+    note: >-
+      Median of 10 published 1-chip int_base results, range 1070-1270, newest 2025-11-17.
+      The three submissions listed above are the subset the handoff transcribed, kept
+      because sigma is calibrated on this part; the survey found seven more.
+    source: sources#specrate
+  run_ctdp_w: 320
+  phi:
+    value: 0.98
+    confidence: MEASURED
+    note: Phoronix, 555-benchmark geomean, 320W vs 400W on the Gigabyte MZ33-AR1
+    source: sources#phi-derate
+  price_street_usd: 7200
+  price_confidence: VOLATILE
+  price_date: 2026-08-29
+  price_note: Phoronix Mar-2026; IT Creations $7,950-8,340
+  price_history:
+  - field: msrp_1ku_usd
+    value: 12141
+    note: launch
+  - field: msrp_1ku_usd
+    value: 10588
+    note: current 1kU after AMD cut
+  vendor: AMD
+  socket: SP5
+  socket_count: 1P/2P
+  memory_channels: 12
+  memory_speed_mts: 6400.0
+  price_list_usd: 12141.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9645
+  name: AMD EPYC 9645
+  vendor: AMD
+  cores: 96
+  architecture: Zen 5c
+  l3_mb: 256
+  tdp_default_w: 320.0
+  socket: SP5
+  socket_count: 1P/2P
+  memory_channels: 12
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 1004.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 6 published 1-chip int_base results, range 892-1080, newest 2025-11-17
+  price_list_usd: 11048.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9825
+  name: AMD EPYC 9825
+  vendor: AMD
+  cores: 144
+  architecture: Zen 5c
+  l3_mb: 384
+  tdp_default_w: 390.0
+  socket: SP5
+  socket_count: 1P/2P
+  memory_channels: 12
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 1240.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 10 published 1-chip int_base results, range 1130-1370, newest 2026-01-06
+  price_list_usd: 13006.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9015
+  name: AMD EPYC 9015
+  vendor: AMD
+  cores: 8
+  architecture: Zen 5
+  l3_mb: 64
+  tdp_default_w: 125.0
+  socket: SP5
+  socket_count: 1P/2P
+  memory_channels: 12
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 118.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 16 published 1-chip int_base results, range 113-123, newest 2026-03-03
+  price_list_usd: 527.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9115
+  name: AMD EPYC 9115
+  vendor: AMD
+  cores: 16
+  architecture: Zen 5
+  l3_mb: 64
+  tdp_default_w: 125.0
+  socket: SP5
+  socket_count: 1P/2P
+  memory_channels: 12
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 220.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 9 published 1-chip int_base results, range 193-233, newest 2026-03-12
+  price_list_usd: 726.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9135
+  name: AMD EPYC 9135
+  vendor: AMD
+  cores: 16
+  architecture: Zen 5
+  l3_mb: 64
+  tdp_default_w: 200.0
+  socket: SP5
+  socket_count: 1P/2P
+  memory_channels: 12
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 232.5
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 14 published 1-chip int_base results, range 224-246, newest 2026-02-06
+  price_list_usd: 1214.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9175f
+  name: AMD EPYC 9175F
+  vendor: AMD
+  cores: 16
+  architecture: Zen 5
+  l3_mb: 512
+  tdp_default_w: 320.0
+  socket: SP5
+  socket_count: 1P/2P
+  memory_channels: 12
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 298.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 9 published 1-chip int_base results, range 269-311, newest 2025-11-17
+  price_list_usd: 4256.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9255
+  name: AMD EPYC 9255
+  vendor: AMD
+  cores: 24
+  architecture: Zen 5
+  l3_mb: 128
+  tdp_default_w: 200.0
+  socket: SP5
+  socket_count: 1P/2P
+  memory_channels: 12
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 348.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 11 published 1-chip int_base results, range 327-371, newest 2026-02-06
+  price_list_usd: 2495.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9275f
+  name: AMD EPYC 9275F
+  vendor: AMD
+  cores: 24
+  architecture: Zen 5
+  l3_mb: 256
+  tdp_default_w: 320.0
+  socket: SP5
+  socket_count: 1P/2P
+  memory_channels: 12
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 388.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 10 published 1-chip int_base results, range 351-415, newest 2026-03-23
+  price_list_usd: 3439.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9335
+  name: AMD EPYC 9335
+  vendor: AMD
+  cores: 32
+  architecture: Zen 5
+  l3_mb: 128
+  tdp_default_w: 210.0
+  socket: SP5
+  socket_count: 1P/2P
+  memory_channels: 12
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 439.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 15 published 1-chip int_base results, range 410-485, newest 2026-04-03
+  price_list_usd: 3178.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9355p
+  name: AMD EPYC 9355P
+  vendor: AMD
+  cores: 32
+  architecture: Zen 5
+  l3_mb: 256
+  tdp_default_w: 280.0
+  socket: SP5
+  socket_count: 1P
+  memory_channels: 12
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 470.5
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 18 published 1-chip int_base results, range 440-490, newest 2026-02-23
+  price_list_usd: 2998.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9355
+  name: AMD EPYC 9355
+  vendor: AMD
+  cores: 32
+  architecture: Zen 5
+  l3_mb: 256
+  tdp_default_w: 280.0
+  socket: SP5
+  socket_count: 1P/2P
+  memory_channels: 12
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 477.5
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 10 published 1-chip int_base results, range 458-506, newest 2026-03-03
+  price_list_usd: 3694.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9375f
+  name: AMD EPYC 9375F
+  vendor: AMD
+  cores: 32
+  architecture: Zen 5
+  l3_mb: 256
+  tdp_default_w: 320.0
+  socket: SP5
+  socket_count: 1P/2P
+  memory_channels: 12
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 505.5
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 16 published 1-chip int_base results, range 454-535, newest 2025-12-30
+  price_list_usd: 5306.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9365
+  name: AMD EPYC 9365
+  vendor: AMD
+  cores: 36
+  architecture: Zen 5
+  l3_mb: 192
+  tdp_default_w: 300.0
+  socket: SP5
+  socket_count: 1P/2P
+  memory_channels: 12
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 492.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 7 published 1-chip int_base results, range 473-541, newest 2026-01-12
+  price_list_usd: 4341.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9455p
+  name: AMD EPYC 9455P
+  vendor: AMD
+  cores: 48
+  architecture: Zen 5
+  l3_mb: 256
+  tdp_default_w: 300.0
+  socket: SP5
+  socket_count: 1P
+  memory_channels: 12
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 624.5
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 10 published 1-chip int_base results, range 580-668, newest 2025-11-03
+  price_list_usd: 4819.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9455
+  name: AMD EPYC 9455
+  vendor: AMD
+  cores: 48
+  architecture: Zen 5
+  l3_mb: 256
+  tdp_default_w: 300.0
+  socket: SP5
+  socket_count: 1P/2P
+  memory_channels: 12
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 628.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 8 published 1-chip int_base results, range 617-702, newest 2026-02-20
+  price_list_usd: 5412.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9475f
+  name: AMD EPYC 9475F
+  vendor: AMD
+  cores: 48
+  architecture: Zen 5
+  l3_mb: 256
+  tdp_default_w: 400.0
+  socket: SP5
+  socket_count: 1P/2P
+  memory_channels: 12
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 681.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 11 published 1-chip int_base results, range 593-735, newest 2025-11-30
+  price_list_usd: 7592.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9535
+  name: AMD EPYC 9535
+  vendor: AMD
+  cores: 64
+  architecture: Zen 5
+  l3_mb: 256
+  tdp_default_w: 300.0
+  socket: SP5
+  socket_count: 1P/2P
+  memory_channels: 12
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 721.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 9 published 1-chip int_base results, range 655-830, newest 2026-01-12
+  price_list_usd: 8992.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9555p
+  name: AMD EPYC 9555P
+  vendor: AMD
+  cores: 64
+  architecture: Zen 5
+  l3_mb: 256
+  tdp_default_w: 360.0
+  socket: SP5
+  socket_count: 1P
+  memory_channels: 12
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 812.5
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 14 published 1-chip int_base results, range 728-864, newest 2026-04-06
+  price_list_usd: 7983.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9555
+  name: AMD EPYC 9555
+  vendor: AMD
+  cores: 64
+  architecture: Zen 5
+  l3_mb: 256
+  tdp_default_w: 360.0
+  socket: SP5
+  socket_count: 1P/2P
+  memory_channels: 12
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 812.5
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 8 published 1-chip int_base results, range 797-883, newest 2025-10-20
+  price_list_usd: 9826.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9575f
+  name: AMD EPYC 9575F
+  vendor: AMD
+  cores: 64
+  architecture: Zen 5
+  l3_mb: 256
+  tdp_default_w: 400.0
+  socket: SP5
+  socket_count: 1P/2P
+  memory_channels: 12
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 811.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 13 published 1-chip int_base results, range 770-881, newest 2026-01-06
+  price_list_usd: 11791.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9565
+  name: AMD EPYC 9565
+  vendor: AMD
+  cores: 72
+  architecture: Zen 5
+  l3_mb: 384
+  tdp_default_w: 400.0
+  socket: SP5
+  socket_count: 1P/2P
+  memory_channels: 12
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 864.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 5 published 1-chip int_base results, range 763-952, newest 2025-12-01
+  price_list_usd: 10468.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9655p
+  name: AMD EPYC 9655P
+  vendor: AMD
+  cores: 96
+  architecture: Zen 5
+  l3_mb: 384
+  tdp_default_w: 400.0
+  socket: SP5
+  socket_count: 1P
+  memory_channels: 12
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 993.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 11 published 1-chip int_base results, range 930-1040, newest 2025-11-17
+  price_list_usd: 10811.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  price_street_usd: 5346.0
+  price_confidence: VOLATILE
+  price_date: &id001 2026-08-31
+  price_note: IT Creations, new tray
+  source: sources#amd-epyc-specs
+- id: epyc-9655
+  name: AMD EPYC 9655
+  vendor: AMD
+  cores: 96
+  architecture: Zen 5
+  l3_mb: 384
+  tdp_default_w: 400.0
+  socket: SP5
+  socket_count: 1P/2P
+  memory_channels: 12
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 1030.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 9 published 1-chip int_base results, range 991-1110, newest 2025-10-20
+  price_list_usd: 11852.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-8025p
+  name: AMD EPYC 8025P
+  vendor: AMD
+  cores: 8
+  architecture: Zen 5
+  l3_mb: 64
+  tdp_default_w: 95.0
+  socket: SP6
+  socket_count: 1P
+  memory_channels: 6
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 117.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 1 published 1-chip int_base result, range 117-117, newest 2026-07-10
+  price_list_usd: 529.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-8125p
+  name: AMD EPYC 8125P
+  vendor: AMD
+  cores: 16
+  architecture: Zen 5
+  l3_mb: 64
+  tdp_default_w: 125.0
+  socket: SP6
+  socket_count: 1P
+  memory_channels: 6
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 224.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 1 published 1-chip int_base result, range 224-224, newest 2026-07-10
+  price_list_usd: 799.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-8225p
+  name: AMD EPYC 8225P
+  vendor: AMD
+  cores: 24
+  architecture: Zen 5
+  l3_mb: 128
+  tdp_default_w: 160.0
+  socket: SP6
+  socket_count: 1P
+  memory_channels: 6
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 328.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 1 published 1-chip int_base result, range 328-328, newest 2026-07-25
+  price_list_usd: 1079.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-8325p
+  name: AMD EPYC 8325P
+  vendor: AMD
+  cores: 32
+  architecture: Zen 5
+  l3_mb: 256
+  tdp_default_w: 175.0
+  socket: SP6
+  socket_count: 1P
+  memory_channels: 6
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 413.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 3 published 1-chip int_base results, range 384-418, newest 2026-07-25
+  price_list_usd: 2299.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-8435p
+  name: AMD EPYC 8435P
+  vendor: AMD
+  cores: 48
+  architecture: Zen 5
+  l3_mb: 256
+  tdp_default_w: 200.0
+  socket: SP6
+  socket_count: 1P
+  memory_channels: 6
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 528.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 1 published 1-chip int_base result, range 528-528, newest 2026-06-12
+  price_list_usd: 3099.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-8535p
+  name: AMD EPYC 8535P
+  vendor: AMD
+  cores: 64
+  architecture: Zen 5
+  l3_mb: 256
+  tdp_default_w: 210.0
+  socket: SP6
+  socket_count: 1P
+  memory_channels: 6
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 614.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 3 published 1-chip int_base results, range 599-616, newest 2026-06-12
+  price_list_usd: 5499.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-8635p
+  name: AMD EPYC 8635P
+  vendor: AMD
+  cores: 84
+  architecture: Zen 5
+  l3_mb: 384
+  tdp_default_w: 225.0
+  socket: SP6
+  socket_count: 1P
+  memory_channels: 6
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 666.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 2 published 1-chip int_base results, range 665-667, newest 2026-04-17
+  price_list_usd: 5799.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-4245p
+  name: AMD EPYC 4245P
+  vendor: AMD
+  cores: 6
+  architecture: Zen 5
+  l3_mb: 32
+  tdp_default_w: 65.0
+  socket: AM5
+  socket_count: 1P
+  memory_channels: 2
+  memory_speed_mts: 5600.0
+  specrate_1p:
+    value_used: 96.65
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 2 published 1-chip int_base results, range 96.6-96.7, newest 2025-04-19
+  price_list_usd: 239.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-4345p
+  name: AMD EPYC 4345P
+  vendor: AMD
+  cores: 8
+  architecture: Zen 5
+  l3_mb: 32
+  tdp_default_w: 65.0
+  socket: AM5
+  socket_count: 1P
+  memory_channels: 2
+  memory_speed_mts: 5600.0
+  specrate_1p:
+    value_used: 119.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 1 published 1-chip int_base result, range 119-119, newest 2025-04-07
+  price_list_usd: 329.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-4565p
+  name: AMD EPYC 4565P
+  vendor: AMD
+  cores: 16
+  architecture: Zen 5
+  l3_mb: 64
+  tdp_default_w: 170.0
+  socket: AM5
+  socket_count: 1P
+  memory_channels: 2
+  memory_speed_mts: 5600.0
+  specrate_1p:
+    value_used: 205.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 1 published 1-chip int_base result, range 205-205, newest 2025-04-19
+  price_list_usd: 589.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-4585px
+  name: AMD EPYC 4585PX
+  vendor: AMD
+  cores: 16
+  architecture: Zen 5
+  l3_mb: 128
+  tdp_default_w: 170.0
+  socket: AM5
+  socket_count: 1P
+  memory_channels: 2
+  memory_speed_mts: 5600.0
+  specrate_1p:
+    value_used: 213.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 1 published 1-chip int_base result, range 213-213, newest 2025-04-19
+  price_list_usd: 699.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-4124p
+  name: AMD EPYC 4124P
+  vendor: AMD
+  cores: 4
+  architecture: Zen 4
+  l3_mb: 16
+  tdp_default_w: 65.0
+  socket: AM5
+  socket_count: 1P
+  memory_channels: 2
+  memory_speed_mts: 5200.0
+  specrate_1p:
+    value_used: 58.9
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 1 published 1-chip int_base result, range 58.9-58.9, newest 2024-12-16
+  price_list_usd: 149.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-4244p
+  name: AMD EPYC 4244P
+  vendor: AMD
+  cores: 6
+  architecture: Zen 4
+  l3_mb: 32
+  tdp_default_w: 65.0
+  socket: AM5
+  socket_count: 1P
+  memory_channels: 2
+  memory_speed_mts: 5200.0
+  specrate_1p:
+    value_used: 84.30000000000001
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 2 published 1-chip int_base results, range 83.4-85.2, newest 2024-12-16
+  price_list_usd: 229.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-4344p
+  name: AMD EPYC 4344P
+  vendor: AMD
+  cores: 8
+  architecture: Zen 4
+  l3_mb: 32
+  tdp_default_w: 65.0
+  socket: AM5
+  socket_count: 1P
+  memory_channels: 2
+  memory_speed_mts: 5200.0
+  specrate_1p:
+    value_used: 103.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 3 published 1-chip int_base results, range 102-105, newest 2024-12-16
+  price_list_usd: 329.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-4364p
+  name: AMD EPYC 4364P
+  vendor: AMD
+  cores: 8
+  architecture: Zen 4
+  l3_mb: 32
+  tdp_default_w: 105.0
+  socket: AM5
+  socket_count: 1P
+  memory_channels: 2
+  memory_speed_mts: 5200.0
+  specrate_1p:
+    value_used: 105.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 1 published 1-chip int_base result, range 105-105, newest 2024-04-22
+  price_list_usd: 399.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-4464p
+  name: AMD EPYC 4464P
+  vendor: AMD
+  cores: 12
+  architecture: Zen 4
+  l3_mb: 64
+  tdp_default_w: 65.0
+  socket: AM5
+  socket_count: 1P
+  memory_channels: 2
+  memory_speed_mts: 5200.0
+  specrate_1p:
+    value_used: 137.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 4 published 1-chip int_base results, range 133-147, newest 2024-10-21
+  price_list_usd: 429.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-4484px
+  name: AMD EPYC 4484PX
+  vendor: AMD
+  cores: 12
+  architecture: Zen 4
+  l3_mb: 128
+  tdp_default_w: 120.0
+  socket: AM5
+  socket_count: 1P
+  memory_channels: 2
+  memory_speed_mts: 5200.0
+  specrate_1p:
+    value_used: 148.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 1 published 1-chip int_base result, range 148-148, newest 2024-04-22
+  price_list_usd: 599.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-4564p
+  name: AMD EPYC 4564P
+  vendor: AMD
+  cores: 16
+  architecture: Zen 4
+  l3_mb: 64
+  tdp_default_w: 170.0
+  socket: AM5
+  socket_count: 1P
+  memory_channels: 2
+  memory_speed_mts: 5200.0
+  specrate_1p:
+    value_used: 173.5
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 2 published 1-chip int_base results, range 172-175, newest 2024-05-08
+  price_list_usd: 699.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-4584px
+  name: AMD EPYC 4584PX
+  vendor: AMD
+  cores: 16
+  architecture: Zen 4
+  l3_mb: 128
+  tdp_default_w: 120.0
+  socket: AM5
+  socket_count: 1P
+  memory_channels: 2
+  memory_speed_mts: 5200.0
+  specrate_1p:
+    value_used: 180.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 1 published 1-chip int_base result, range 180-180, newest 2024-04-22
+  price_list_usd: 699.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-8024p
+  name: AMD EPYC 8024P
+  vendor: AMD
+  cores: 8
+  architecture: Zen 4
+  l3_mb: 32
+  tdp_default_w: 90.0
+  socket: SP6
+  socket_count: 1P
+  memory_channels: 6
+  memory_speed_mts: 4800.0
+  specrate_1p:
+    value_used: 74.7
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 5 published 1-chip int_base results, range 74.6-78, newest 2024-11-04
+  price_list_usd: 409.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-8024pn
+  name: AMD EPYC 8024PN
+  vendor: AMD
+  cores: 8
+  architecture: Zen 4
+  l3_mb: 32
+  tdp_default_w: 80.0
+  socket: SP6
+  socket_count: 1P
+  memory_channels: 6
+  memory_speed_mts: 4800.0
+  specrate_1p:
+    value_used: 76.19999999999999
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 4 published 1-chip int_base results, range 74.4-79.7, newest 2025-12-01
+  price_list_usd: 525.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-8124p
+  name: AMD EPYC 8124P
+  vendor: AMD
+  cores: 16
+  architecture: Zen 4
+  l3_mb: 64
+  tdp_default_w: 125.0
+  socket: SP6
+  socket_count: 1P
+  memory_channels: 6
+  memory_speed_mts: 4800.0
+  specrate_1p:
+    value_used: 147.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 4 published 1-chip int_base results, range 147-154, newest 2024-10-21
+  price_list_usd: 639.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-8124pn
+  name: AMD EPYC 8124PN
+  vendor: AMD
+  cores: 16
+  architecture: Zen 4
+  l3_mb: 64
+  tdp_default_w: 100.0
+  socket: SP6
+  socket_count: 1P
+  memory_channels: 6
+  memory_speed_mts: 4800.0
+  specrate_1p:
+    value_used: 154.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 3 published 1-chip int_base results, range 147-158, newest 2025-12-01
+  price_list_usd: 790.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-8224p
+  name: AMD EPYC 8224P
+  vendor: AMD
+  cores: 24
+  architecture: Zen 4
+  l3_mb: 64
+  tdp_default_w: 160.0
+  socket: SP6
+  socket_count: 1P
+  memory_channels: 6
+  memory_speed_mts: 4800.0
+  specrate_1p:
+    value_used: 209.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 6 published 1-chip int_base results, range 208-223, newest 2024-10-21
+  price_list_usd: 855.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-8224pn
+  name: AMD EPYC 8224PN
+  vendor: AMD
+  cores: 24
+  architecture: Zen 4
+  l3_mb: 64
+  tdp_default_w: 120.0
+  socket: SP6
+  socket_count: 1P
+  memory_channels: 6
+  memory_speed_mts: 4800.0
+  specrate_1p:
+    value_used: 222.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 3 published 1-chip int_base results, range 208-226, newest 2025-12-15
+  price_list_usd: 1015.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-8324p
+  name: AMD EPYC 8324P
+  vendor: AMD
+  cores: 32
+  architecture: Zen 4
+  l3_mb: 128
+  tdp_default_w: 180.0
+  socket: SP6
+  socket_count: 1P
+  memory_channels: 6
+  memory_speed_mts: 4800.0
+  specrate_1p:
+    value_used: 277.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 5 published 1-chip int_base results, range 276-298, newest 2024-11-04
+  price_list_usd: 1895.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-8324pn
+  name: AMD EPYC 8324PN
+  vendor: AMD
+  cores: 32
+  architecture: Zen 4
+  l3_mb: 128
+  tdp_default_w: 130.0
+  socket: SP6
+  socket_count: 1P
+  memory_channels: 6
+  memory_speed_mts: 4800.0
+  specrate_1p:
+    value_used: 297.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 3 published 1-chip int_base results, range 275-300, newest 2025-12-15
+  price_list_usd: 2125.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-8434p
+  name: AMD EPYC 8434P
+  vendor: AMD
+  cores: 48
+  architecture: Zen 4
+  l3_mb: 128
+  tdp_default_w: 200.0
+  socket: SP6
+  socket_count: 1P
+  memory_channels: 6
+  memory_speed_mts: 4800.0
+  specrate_1p:
+    value_used: 391.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 6 published 1-chip int_base results, range 389-423, newest 2024-11-04
+  price_list_usd: 2700.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-8434pn
+  name: AMD EPYC 8434PN
+  vendor: AMD
+  cores: 48
+  architecture: Zen 4
+  l3_mb: 128
+  tdp_default_w: 155.0
+  socket: SP6
+  socket_count: 1P
+  memory_channels: 6
+  memory_speed_mts: 4800.0
+  specrate_1p:
+    value_used: 405.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 3 published 1-chip int_base results, range 375-406, newest 2025-12-01
+  price_list_usd: 3150.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-8534p
+  name: AMD EPYC 8534P
+  vendor: AMD
+  cores: 64
+  architecture: Zen 4
+  l3_mb: 128
+  tdp_default_w: 200.0
+  socket: SP6
+  socket_count: 1P
+  memory_channels: 6
+  memory_speed_mts: 4800.0
+  specrate_1p:
+    value_used: 475.5
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 6 published 1-chip int_base results, range 474-513, newest 2024-09-23
+  price_list_usd: 4950.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-8534pn
+  name: AMD EPYC 8534PN
+  vendor: AMD
+  cores: 64
+  architecture: Zen 4
+  l3_mb: 128
+  tdp_default_w: 175.0
+  socket: SP6
+  socket_count: 1P
+  memory_channels: 6
+  memory_speed_mts: 4800.0
+  specrate_1p:
+    value_used: 454.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 4 published 1-chip int_base results, range 439-473, newest 2025-12-01
+  price_list_usd: 5450.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9124
+  name: AMD EPYC 9124
+  vendor: AMD
+  cores: 16
+  architecture: Zen 4
+  l3_mb: 64
+  tdp_default_w: 200.0
+  socket: SP5
+  socket_count: 1P/2P
+  memory_channels: 12
+  memory_speed_mts: 4800.0
+  specrate_1p:
+    value_used: 177.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 14 published 1-chip int_base results, range 168-180, newest 2024-10-18
+  price_list_usd: 1083.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9224
+  name: AMD EPYC 9224
+  vendor: AMD
+  cores: 24
+  architecture: Zen 4
+  l3_mb: 64
+  tdp_default_w: 200.0
+  socket: SP5
+  socket_count: 1P/2P
+  memory_channels: 12
+  memory_speed_mts: 4800.0
+  specrate_1p:
+    value_used: 254.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 12 published 1-chip int_base results, range 250-258, newest 2024-05-06
+  price_list_usd: 1825.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9254
+  name: AMD EPYC 9254
+  vendor: AMD
+  cores: 24
+  architecture: Zen 4
+  l3_mb: 128
+  tdp_default_w: 220.0
+  socket: SP5
+  socket_count: 1P/2P
+  memory_channels: 12
+  memory_speed_mts: 4800.0
+  specrate_1p:
+    value_used: 293.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 15 published 1-chip int_base results, range 287-299, newest 2024-05-06
+  price_list_usd: 2299.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9334
+  name: AMD EPYC 9334
+  vendor: AMD
+  cores: 32
+  architecture: Zen 4
+  l3_mb: 128
+  tdp_default_w: 210.0
+  socket: SP5
+  socket_count: 1P/2P
+  memory_channels: 12
+  memory_speed_mts: 4800.0
+  specrate_1p:
+    value_used: 361.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 13 published 1-chip int_base results, range 328-367, newest 2024-10-18
+  price_list_usd: 2990.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9354
+  name: AMD EPYC 9354
+  vendor: AMD
+  cores: 32
+  architecture: Zen 4
+  l3_mb: 256
+  tdp_default_w: 280.0
+  socket: SP5
+  socket_count: 1P/2P
+  memory_channels: 12
+  memory_speed_mts: 4800.0
+  specrate_1p:
+    value_used: 372.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 9 published 1-chip int_base results, range 370-398, newest 2025-07-18
+  price_list_usd: 3420.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9354p
+  name: AMD EPYC 9354P
+  vendor: AMD
+  cores: 32
+  architecture: Zen 4
+  l3_mb: 256
+  tdp_default_w: 280.0
+  socket: SP5
+  socket_count: 1P
+  memory_channels: 12
+  memory_speed_mts: 4800.0
+  specrate_1p:
+    value_used: 371.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 16 published 1-chip int_base results, range 365-398, newest 2025-02-25
+  price_list_usd: 2730.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9174f
+  name: AMD EPYC 9174F
+  vendor: AMD
+  cores: 16
+  architecture: Zen 4
+  l3_mb: 256
+  tdp_default_w: 320.0
+  socket: SP5
+  socket_count: 1P/2P
+  memory_channels: 12
+  memory_speed_mts: 4800.0
+  specrate_1p:
+    value_used: 221.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 12 published 1-chip int_base results, range 218-224, newest 2024-04-22
+  price_list_usd: 3850.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9184x
+  name: AMD EPYC 9184X
+  vendor: AMD
+  cores: 16
+  architecture: Zen 4
+  l3_mb: 768
+  tdp_default_w: 320.0
+  socket: SP5
+  socket_count: 1P/2P
+  memory_channels: 12
+  memory_speed_mts: 4800.0
+  specrate_1p:
+    value_used: 231.5
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 6 published 1-chip int_base results, range 228-239, newest 2025-05-27
+  price_list_usd: 4928.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9274f
+  name: AMD EPYC 9274F
+  vendor: AMD
+  cores: 24
+  architecture: Zen 4
+  l3_mb: 256
+  tdp_default_w: 320.0
+  socket: SP5
+  socket_count: 1P/2P
+  memory_channels: 12
+  memory_speed_mts: 4800.0
+  specrate_1p:
+    value_used: 316.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 11 published 1-chip int_base results, range 310-320, newest 2024-05-20
+  price_list_usd: 3060.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9374f
+  name: AMD EPYC 9374F
+  vendor: AMD
+  cores: 32
+  architecture: Zen 4
+  l3_mb: 256
+  tdp_default_w: 320.0
+  socket: SP5
+  socket_count: 1P/2P
+  memory_channels: 12
+  memory_speed_mts: 4800.0
+  specrate_1p:
+    value_used: 408.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 10 published 1-chip int_base results, range 402-415, newest 2024-07-01
+  price_list_usd: 4860.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9384x
+  name: AMD EPYC 9384X
+  vendor: AMD
+  cores: 32
+  architecture: Zen 4
+  l3_mb: 768
+  tdp_default_w: 320.0
+  socket: SP5
+  socket_count: 1P/2P
+  memory_channels: 12
+  memory_speed_mts: 4800.0
+  specrate_1p:
+    value_used: 408.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 5 published 1-chip int_base results, range 404-411, newest 2024-07-01
+  price_list_usd: 5529.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9474f
+  name: AMD EPYC 9474F
+  vendor: AMD
+  cores: 48
+  architecture: Zen 4
+  l3_mb: 256
+  tdp_default_w: 360.0
+  socket: SP5
+  socket_count: 1P/2P
+  memory_channels: 12
+  memory_speed_mts: 4800.0
+  specrate_1p:
+    value_used: 554.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 11 published 1-chip int_base results, range 547-588, newest 2025-04-23
+  price_list_usd: 6780.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9454
+  name: AMD EPYC 9454
+  vendor: AMD
+  cores: 48
+  architecture: Zen 4
+  l3_mb: 256
+  tdp_default_w: 290.0
+  socket: SP5
+  socket_count: 1P/2P
+  memory_channels: 12
+  memory_speed_mts: 4800.0
+  specrate_1p:
+    value_used: 523.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 6 published 1-chip int_base results, range 517-534, newest 2024-07-09
+  price_list_usd: 5225.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9454p
+  name: AMD EPYC 9454P
+  vendor: AMD
+  cores: 48
+  architecture: Zen 4
+  l3_mb: 256
+  tdp_default_w: 290.0
+  socket: SP5
+  socket_count: 1P
+  memory_channels: 12
+  memory_speed_mts: 4800.0
+  specrate_1p:
+    value_used: 521.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 15 published 1-chip int_base results, range 510-540, newest 2025-02-25
+  price_list_usd: 4598.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9534
+  name: AMD EPYC 9534
+  vendor: AMD
+  cores: 64
+  architecture: Zen 4
+  l3_mb: 256
+  tdp_default_w: 280.0
+  socket: SP5
+  socket_count: 1P/2P
+  memory_channels: 12
+  memory_speed_mts: 4800.0
+  specrate_1p:
+    value_used: 608.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 13 published 1-chip int_base results, range 598-661, newest 2024-08-27
+  price_list_usd: 8803.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9554
+  name: AMD EPYC 9554
+  vendor: AMD
+  cores: 64
+  architecture: Zen 4
+  l3_mb: 256
+  tdp_default_w: 360.0
+  socket: SP5
+  socket_count: 1P/2P
+  memory_channels: 12
+  memory_speed_mts: 4800.0
+  specrate_1p:
+    value_used: 656.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 14 published 1-chip int_base results, range 576-728, newest 2025-07-18
+  price_list_usd: 9087.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9554p
+  name: AMD EPYC 9554P
+  vendor: AMD
+  cores: 64
+  architecture: Zen 4
+  l3_mb: 256
+  tdp_default_w: 360.0
+  socket: SP5
+  socket_count: 1P
+  memory_channels: 12
+  memory_speed_mts: 4800.0
+  specrate_1p:
+    value_used: 656.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 15 published 1-chip int_base results, range 641-705, newest 2025-04-23
+  price_list_usd: 7104.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9634
+  name: AMD EPYC 9634
+  vendor: AMD
+  cores: 84
+  architecture: Zen 4
+  l3_mb: 384
+  tdp_default_w: 290.0
+  socket: SP5
+  socket_count: 1P/2P
+  memory_channels: 12
+  memory_speed_mts: 4800.0
+  specrate_1p:
+    value_used: 700.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 12 published 1-chip int_base results, range 681-834, newest 2025-05-27
+  price_list_usd: 10304.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9654
+  name: AMD EPYC 9654
+  vendor: AMD
+  cores: 96
+  architecture: Zen 4
+  l3_mb: 384
+  tdp_default_w: 360.0
+  socket: SP5
+  socket_count: 1P/2P
+  memory_channels: 12
+  memory_speed_mts: 4800.0
+  specrate_1p:
+    value_used: 840.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 22 published 1-chip int_base results, range 659-991, newest 2025-07-18
+  price_list_usd: 11805.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9654p
+  name: AMD EPYC 9654P
+  vendor: AMD
+  cores: 96
+  architecture: Zen 4
+  l3_mb: 384
+  tdp_default_w: 360.0
+  socket: SP5
+  socket_count: 1P
+  memory_channels: 12
+  memory_speed_mts: 4800.0
+  specrate_1p:
+    value_used: 833.5
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 16 published 1-chip int_base results, range 673-861, newest 2025-04-23
+  price_list_usd: 10625.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  price_street_usd: 5350.0
+  price_confidence: VOLATILE
+  price_date: *id001
+  price_note: IT Creations, new tray; a second listing of the same part at $5,450
+  source: sources#amd-epyc-specs
+- id: epyc-9684x
+  name: AMD EPYC 9684X
+  vendor: AMD
+  cores: 96
+  architecture: Zen 4
+  l3_mb: 1152
+  tdp_default_w: 400.0
+  socket: SP5
+  socket_count: 1P/2P
+  memory_channels: 12
+  memory_speed_mts: 4800.0
+  specrate_1p:
+    value_used: 888.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 12 published 1-chip int_base results, range 819-964, newest 2025-10-14
+  price_list_usd: 14756.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9734
+  name: AMD EPYC 9734
+  vendor: AMD
+  cores: 112
+  architecture: Zen 4
+  l3_mb: 256
+  tdp_default_w: 340.0
+  socket: SP5
+  socket_count: 1P/2P
+  memory_channels: 12
+  memory_speed_mts: 4800.0
+  specrate_1p:
+    value_used: 848.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 11 published 1-chip int_base results, range 846-874, newest 2024-04-22
+  price_list_usd: 9600.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: epyc-9754
+  name: AMD EPYC 9754
+  vendor: AMD
+  cores: 128
+  architecture: Zen 4
+  l3_mb: 256
+  tdp_default_w: 360.0
+  socket: SP5
+  socket_count: 1P/2P
+  memory_channels: 12
+  memory_speed_mts: 4800.0
+  specrate_1p:
+    value_used: 941.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 19 published 1-chip int_base results, range 760-1050, newest 2025-08-22
+  price_list_usd: 11900.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#amd-epyc-specs
+- id: xeon-6724p
+  name: Intel Xeon 6724P
+  vendor: Intel
+  cores: 16
+  architecture: Granite Rapids (P-core)
+  l3_mb: 72
+  tdp_default_w: 210.0
+  socket: LGA4710
+  socket_count: 8S
+  memory_channels: 8
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 203.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 2 published 1-chip int_base results, range 202-204, newest 2025-06-30
+  price_list_usd: 3622.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#intel-xeon6-specs
+- id: xeon-6760p
+  name: Intel Xeon 6760P
+  vendor: Intel
+  cores: 64
+  architecture: Granite Rapids (P-core)
+  l3_mb: 320
+  tdp_default_w: 330.0
+  socket: LGA4710
+  socket_count: 2S
+  memory_channels: 8
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 650.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 4 published 1-chip int_base results, range 643-651, newest 2026-07-10
+  price_list_usd: 7803.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#intel-xeon6-specs
+- id: xeon-6740p
+  name: Intel Xeon 6740P
+  vendor: Intel
+  cores: 48
+  architecture: Granite Rapids (P-core)
+  l3_mb: 288
+  tdp_default_w: 270.0
+  socket: LGA4710
+  socket_count: 2S
+  memory_channels: 8
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 495.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 3 published 1-chip int_base results, range 495-497, newest 2026-06-12
+  price_list_usd: 4650.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#intel-xeon6-specs
+- id: xeon-6530p
+  name: Intel Xeon 6530P
+  vendor: Intel
+  cores: 32
+  architecture: Granite Rapids (P-core)
+  l3_mb: 144
+  tdp_default_w: 225.0
+  socket: LGA4710
+  socket_count: 2S
+  memory_channels: 8
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 363.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 3 published 1-chip int_base results, range 363-367, newest 2026-05-15
+  price_list_usd: 2234.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#intel-xeon6-specs
+- id: xeon-6520p
+  name: Intel Xeon 6520P
+  vendor: Intel
+  cores: 24
+  architecture: Granite Rapids (P-core)
+  l3_mb: 144
+  tdp_default_w: 210.0
+  socket: LGA4710
+  socket_count: 2S
+  memory_channels: 8
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 261.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 3 published 1-chip int_base results, range 261-265, newest 2026-05-15
+  price_list_usd: 1295.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#intel-xeon6-specs
+- id: xeon-6515p
+  name: Intel Xeon 6515P
+  vendor: Intel
+  cores: 16
+  architecture: Granite Rapids (P-core)
+  l3_mb: 72
+  tdp_default_w: 150.0
+  socket: LGA4710
+  socket_count: 2S
+  memory_channels: 8
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 190.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 3 published 1-chip int_base results, range 190-192, newest 2026-05-01
+  price_list_usd: 740.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#intel-xeon6-specs
+- id: xeon-6505p
+  name: Intel Xeon 6505P
+  vendor: Intel
+  cores: 12
+  architecture: Granite Rapids (P-core)
+  l3_mb: 48
+  tdp_default_w: 150.0
+  socket: LGA4710
+  socket_count: 2S
+  memory_channels: 8
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 145.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 6 published 1-chip int_base results, range 145-147, newest 2026-05-26
+  price_list_usd: 563.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#intel-xeon6-specs
+- id: xeon-6787p
+  name: Intel Xeon 6787P
+  vendor: Intel
+  cores: 86
+  architecture: Granite Rapids (P-core)
+  l3_mb: 336
+  tdp_default_w: 350.0
+  socket: LGA4710
+  socket_count: 2S
+  memory_channels: 8
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 796.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 3 published 1-chip int_base results, range 786-811, newest 2026-04-06
+  price_list_usd: 10400.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#intel-xeon6-specs
+- id: xeon-6767p
+  name: Intel Xeon 6767P
+  vendor: Intel
+  cores: 64
+  architecture: Granite Rapids (P-core)
+  l3_mb: 336
+  tdp_default_w: 350.0
+  socket: LGA4710
+  socket_count: 2S
+  memory_channels: 8
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 674.5
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 6 published 1-chip int_base results, range 621-677, newest 2026-07-25
+  price_list_usd: 9595.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#intel-xeon6-specs
+- id: xeon-6747p
+  name: Intel Xeon 6747P
+  vendor: Intel
+  cores: 48
+  architecture: Granite Rapids (P-core)
+  l3_mb: 288
+  tdp_default_w: 350.0
+  socket: LGA4710
+  socket_count: 2S
+  memory_channels: 8
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 546.5
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 4 published 1-chip int_base results, range 544-547, newest 2026-07-10
+  price_list_usd: 6497.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#intel-xeon6-specs
+- id: xeon-6745p
+  name: Intel Xeon 6745P
+  vendor: Intel
+  cores: 32
+  architecture: Granite Rapids (P-core)
+  l3_mb: 336
+  tdp_default_w: 300.0
+  socket: LGA4710
+  socket_count: 2S
+  memory_channels: 8
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 405.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 3 published 1-chip int_base results, range 404-406, newest 2026-07-25
+  price_list_usd: 5250.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#intel-xeon6-specs
+- id: xeon-6737p
+  name: Intel Xeon 6737P
+  vendor: Intel
+  cores: 32
+  architecture: Granite Rapids (P-core)
+  l3_mb: 144
+  tdp_default_w: 270.0
+  socket: LGA4710
+  socket_count: 2S
+  memory_channels: 8
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 385.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 5 published 1-chip int_base results, range 383-387, newest 2026-06-12
+  price_list_usd: 4995.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#intel-xeon6-specs
+- id: xeon-6736p
+  name: Intel Xeon 6736P
+  vendor: Intel
+  cores: 36
+  architecture: Granite Rapids (P-core)
+  l3_mb: 144
+  tdp_default_w: 205.0
+  socket: LGA4710
+  socket_count: 2S
+  memory_channels: 8
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 381.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 3 published 1-chip int_base results, range 380-384, newest 2026-05-27
+  price_list_usd: 3351.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#intel-xeon6-specs
+- id: xeon-6732p
+  name: Intel Xeon 6732P
+  vendor: Intel
+  cores: 32
+  architecture: Granite Rapids (P-core)
+  l3_mb: 144
+  tdp_default_w: 350.0
+  socket: LGA4710
+  socket_count: 2S
+  memory_channels: 8
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 382.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 1 published 1-chip int_base result, range 382-382, newest 2026-07-10
+  price_list_usd: 5295.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#intel-xeon6-specs
+- id: xeon-6730p
+  name: Intel Xeon 6730P
+  vendor: Intel
+  cores: 32
+  architecture: Granite Rapids (P-core)
+  l3_mb: 288
+  tdp_default_w: 250.0
+  socket: LGA4710
+  socket_count: 2S
+  memory_channels: 8
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 366.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 4 published 1-chip int_base results, range 364-367, newest 2026-07-25
+  price_list_usd: 3726.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#intel-xeon6-specs
+- id: xeon-6527p
+  name: Intel Xeon 6527P
+  vendor: Intel
+  cores: 24
+  architecture: Granite Rapids (P-core)
+  l3_mb: 144
+  tdp_default_w: 250.0
+  socket: LGA4710
+  socket_count: 2S
+  memory_channels: 8
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 300.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 5 published 1-chip int_base results, range 298-307, newest 2026-05-15
+  price_list_usd: 2872.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#intel-xeon6-specs
+- id: xeon-6517p
+  name: Intel Xeon 6517P
+  vendor: Intel
+  cores: 16
+  architecture: Granite Rapids (P-core)
+  l3_mb: 72
+  tdp_default_w: 190.0
+  socket: LGA4710
+  socket_count: 2S
+  memory_channels: 8
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 197.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 7 published 1-chip int_base results, range 197-207, newest 2026-06-29
+  price_list_usd: 1195.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#intel-xeon6-specs
+- id: xeon-6507p
+  name: Intel Xeon 6507P
+  vendor: Intel
+  cores: 8
+  architecture: Granite Rapids (P-core)
+  l3_mb: 48
+  tdp_default_w: 150.0
+  socket: LGA4710
+  socket_count: 2S
+  memory_channels: 8
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 106.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 5 published 1-chip int_base results, range 105-108, newest 2026-05-01
+  price_list_usd: 765.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#intel-xeon6-specs
+- id: xeon-6781p
+  name: Intel Xeon 6781P
+  vendor: Intel
+  cores: 80
+  architecture: Granite Rapids (P-core)
+  l3_mb: 336
+  tdp_default_w: 350.0
+  socket: LGA4710
+  socket_count: 1S
+  memory_channels: 8
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 749.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 18 published 1-chip int_base results, range 695-775, newest 2026-07-10
+  price_list_usd: 8960.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#intel-xeon6-specs
+- id: xeon-6774p
+  name: Intel Xeon 6774P
+  vendor: Intel
+  cores: 64
+  architecture: Granite Rapids (P-core)
+  l3_mb: 336
+  tdp_default_w: 350.0
+  socket: LGA4710
+  socket_count: 1S
+  memory_channels: 8
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 518.5
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 2 published 1-chip int_base results, range 518-519, newest 2026-05-01
+  source: sources#intel-xeon6-specs
+- id: xeon-6761p
+  name: Intel Xeon 6761P
+  vendor: Intel
+  cores: 64
+  architecture: Granite Rapids (P-core)
+  l3_mb: 336
+  tdp_default_w: 350.0
+  socket: LGA4710
+  socket_count: 1S
+  memory_channels: 8
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 676.5
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 18 published 1-chip int_base results, range 619-700, newest 2026-07-25
+  price_list_usd: 6570.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#intel-xeon6-specs
+- id: xeon-6741p
+  name: Intel Xeon 6741P
+  vendor: Intel
+  cores: 48
+  architecture: Granite Rapids (P-core)
+  l3_mb: 288
+  tdp_default_w: 300.0
+  socket: LGA4710
+  socket_count: 1S
+  memory_channels: 8
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 533.5
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 14 published 1-chip int_base results, range 513-552, newest 2026-07-25
+  price_list_usd: 4421.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#intel-xeon6-specs
+- id: xeon-6731p
+  name: Intel Xeon 6731P
+  vendor: Intel
+  cores: 32
+  architecture: Granite Rapids (P-core)
+  l3_mb: 144
+  tdp_default_w: 245.0
+  socket: LGA4710
+  socket_count: 1S
+  memory_channels: 8
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 375.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 12 published 1-chip int_base results, range 364-380, newest 2026-05-27
+  price_list_usd: 2700.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#intel-xeon6-specs
+- id: xeon-6521p
+  name: Intel Xeon 6521P
+  vendor: Intel
+  cores: 24
+  architecture: Granite Rapids (P-core)
+  l3_mb: 144
+  tdp_default_w: 225.0
+  socket: LGA4710
+  socket_count: 1S
+  memory_channels: 8
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 298.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 14 published 1-chip int_base results, range 288-307, newest 2026-07-25
+  price_list_usd: 1250.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#intel-xeon6-specs
+- id: xeon-6511p
+  name: Intel Xeon 6511P
+  vendor: Intel
+  cores: 16
+  architecture: Granite Rapids (P-core)
+  l3_mb: 72
+  tdp_default_w: 150.0
+  socket: LGA4710
+  socket_count: 1S
+  memory_channels: 8
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 199.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 13 published 1-chip int_base results, range 191-204, newest 2026-07-28
+  price_list_usd: 815.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#intel-xeon6-specs
+- id: xeon-6980p
+  name: Intel Xeon 6980P
+  vendor: Intel
+  cores: 128
+  architecture: Granite Rapids (P-core)
+  l3_mb: 504
+  tdp_default_w: 500.0
+  socket: LGA7529
+  socket_count: 2S
+  memory_channels: 12
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 1220.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 5 published 1-chip int_base results, range 1220-1230, newest 2024-12-16
+  price_list_usd: 17800.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#intel-xeon6-specs
+- id: xeon-6979p
+  name: Intel Xeon 6979P
+  vendor: Intel
+  cores: 120
+  architecture: Granite Rapids (P-core)
+  l3_mb: 504
+  tdp_default_w: 500.0
+  socket: LGA7529
+  socket_count: 2S
+  memory_channels: 12
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 1150.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 1 published 1-chip int_base result, range 1150-1150, newest 2024-10-08
+  price_list_usd: 15750.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#intel-xeon6-specs
+- id: xeon-6972p
+  name: Intel Xeon 6972P
+  vendor: Intel
+  cores: 96
+  architecture: Granite Rapids (P-core)
+  l3_mb: 480
+  tdp_default_w: 500.0
+  socket: LGA7529
+  socket_count: 2S
+  memory_channels: 12
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 1010.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 1 published 1-chip int_base result, range 1010-1010, newest 2024-10-08
+  price_list_usd: 14600.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#intel-xeon6-specs
+- id: xeon-6962p
+  name: Intel Xeon 6962P
+  vendor: Intel
+  cores: 72
+  architecture: Granite Rapids (P-core)
+  l3_mb: 432
+  tdp_default_w: 500.0
+  socket: LGA7529
+  socket_count: 2S
+  memory_channels: 12
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 849.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 1 published 1-chip int_base result, range 849-849, newest 2026-05-18
+  price_list_usd: 9925.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#intel-xeon6-specs
+- id: xeon-6960p
+  name: Intel Xeon 6960P
+  vendor: Intel
+  cores: 72
+  architecture: Granite Rapids (P-core)
+  l3_mb: 432
+  tdp_default_w: 500.0
+  socket: LGA7529
+  socket_count: 2S
+  memory_channels: 12
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 838.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 1 published 1-chip int_base result, range 838-838, newest 2024-10-08
+  price_list_usd: 13750.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#intel-xeon6-specs
+- id: xeon-6952p
+  name: Intel Xeon 6952P
+  vendor: Intel
+  cores: 96
+  architecture: Granite Rapids (P-core)
+  l3_mb: 480
+  tdp_default_w: 400.0
+  socket: LGA7529
+  socket_count: 2S
+  memory_channels: 12
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 969.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 1 published 1-chip int_base result, range 969-969, newest 2026-01-12
+  price_list_usd: 11400.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#intel-xeon6-specs
+- id: xeon-6710e
+  name: Intel Xeon 6710E
+  vendor: Intel
+  cores: 64
+  architecture: Sierra Forest (E-core)
+  l3_mb: 96
+  tdp_default_w: 205.0
+  socket: LGA4710
+  socket_count: 2S
+  memory_channels: 8
+  memory_speed_mts: 5600.0
+  specrate_1p:
+    value_used: 352.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 5 published 1-chip int_base results, range 349-353, newest 2025-06-30
+  price_list_usd: 2199.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#intel-xeon6-specs
+- id: xeon-6731e
+  name: Intel Xeon 6731E
+  vendor: Intel
+  cores: 96
+  architecture: Sierra Forest (E-core)
+  l3_mb: 96
+  tdp_default_w: 250.0
+  socket: LGA4710
+  socket_count: 1S
+  memory_channels: 8
+  memory_speed_mts: 5600.0
+  specrate_1p:
+    value_used: 493.5
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 6 published 1-chip int_base results, range 484-510, newest 2025-11-17
+  price_list_usd: 3297.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#intel-xeon6-specs
+- id: xeon-6740e
+  name: Intel Xeon 6740E
+  vendor: Intel
+  cores: 96
+  architecture: Sierra Forest (E-core)
+  l3_mb: 96
+  tdp_default_w: 250.0
+  socket: LGA4710
+  socket_count: 2S
+  memory_channels: 8
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 511.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 4 published 1-chip int_base results, range 502-514, newest 2025-07-25
+  price_list_usd: 3949.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#intel-xeon6-specs
+- id: xeon-6746e
+  name: Intel Xeon 6746E
+  vendor: Intel
+  cores: 112
+  architecture: Sierra Forest (E-core)
+  l3_mb: 96
+  tdp_default_w: 250.0
+  socket: LGA4710
+  socket_count: 2S
+  memory_channels: 8
+  memory_speed_mts: 5600.0
+  specrate_1p:
+    value_used: 517.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 3 published 1-chip int_base results, range 516-518, newest 2025-07-25
+  price_list_usd: 4447.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#intel-xeon6-specs
+- id: xeon-6756e
+  name: Intel Xeon 6756E
+  vendor: Intel
+  cores: 128
+  architecture: Sierra Forest (E-core)
+  l3_mb: 96
+  tdp_default_w: 225.0
+  socket: LGA4710
+  socket_count: 2S
+  memory_channels: 8
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 573.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 3 published 1-chip int_base results, range 564-575, newest 2025-07-25
+  price_list_usd: 6320.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#intel-xeon6-specs
+- id: xeon-6766e
+  name: Intel Xeon 6766E
+  vendor: Intel
+  cores: 144
+  architecture: Sierra Forest (E-core)
+  l3_mb: 108
+  tdp_default_w: 250.0
+  socket: LGA4710
+  socket_count: 2S
+  memory_channels: 8
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 646.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 4 published 1-chip int_base results, range 636-665, newest 2025-07-25
+  price_list_usd: 7692.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#intel-xeon6-specs
+- id: xeon-6780e
+  name: Intel Xeon 6780E
+  vendor: Intel
+  cores: 144
+  architecture: Sierra Forest (E-core)
+  l3_mb: 108
+  tdp_default_w: 330.0
+  socket: LGA4710
+  socket_count: 2S
+  memory_channels: 8
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 697.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 5 published 1-chip int_base results, range 691-712, newest 2025-06-30
+  price_list_usd: 8513.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#intel-xeon6-specs
+- id: xeon-6990e-plus
+  name: Intel Xeon 6990E+
+  vendor: Intel
+  cores: 288
+  architecture: Clearwater Forest (E-core)
+  l3_mb: 576
+  tdp_default_w: 450.0
+  socket: LGA7529
+  socket_count: 2S
+  memory_channels: 12
+  memory_speed_mts: 8000.0
+  specrate_1p:
+    value_used: 1405.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 2 published 1-chip int_base results, range 1400-1410, newest 2026-06-02
+  source: sources#intel-xeon6-specs
+- id: xeon-6980e-plus
+  name: Intel Xeon 6980E+
+  vendor: Intel
+  cores: 264
+  architecture: Clearwater Forest (E-core)
+  l3_mb: 528
+  tdp_default_w: 400.0
+  socket: LGA7529
+  socket_count: 2S
+  memory_channels: 12
+  memory_speed_mts: 8000.0
+  specrate_1p:
+    value_used: 1285.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 2 published 1-chip int_base results, range 1280-1290, newest 2026-06-02
+  source: sources#intel-xeon6-specs
+- id: xeon-6970e-plus
+  name: Intel Xeon 6970E+
+  vendor: Intel
+  cores: 192
+  architecture: Clearwater Forest (E-core)
+  l3_mb: 480
+  tdp_default_w: 400.0
+  socket: LGA7529
+  socket_count: 2S
+  memory_channels: 12
+  memory_speed_mts: 8000.0
+  specrate_1p:
+    value_used: 1060.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 2 published 1-chip int_base results, range 1060-1060, newest 2026-06-02
+  source: sources#intel-xeon6-specs
+- id: xeon-6978p
+  name: Intel Xeon 6978P
+  vendor: Intel
+  cores: 120
+  architecture: Granite Rapids (P-core)
+  socket: LGA7529
+  socket_count: 2S
+  memory_channels: 12
+  memory_speed_mts: 6400.0
+  specrate_1p:
+    value_used: 1140.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 1 published 1-chip int_base result, range 1140-1140, newest 2026-04-30
+  source: sources#intel-xeon6-specs
+- id: ampereone-a192-32x
+  name: Ampere AmpereOne A192-32X
+  vendor: Ampere
+  cores: 192
+  architecture: AmpereOne (Arm)
+  l3_mb: 64
+  tdp_default_w: 400.0
+  socket: FCLGA5964
+  socket_count: 1P
+  memory_channels: 12
+  memory_speed_mts: 5600.0
+  specrate_1p:
+    value_used: 702.0
+    confidence: MEASURED
+    source: sources#specrate
+    note: median of 1 published 1-chip int_base result, range 702-702, newest 2024-07-29
+  price_list_usd: 5555.0
+  price_list_confidence: CONFIRMED
+  price_list_note: vendor list price at launch, an upper bound on street
+  source: sources#ampere-specs
 # Reference part for the rental comparison: the CPU inside Hetzner's AX162.
 reference_cpus:
-  - id: epyc-9454p
-    name: AMD EPYC 9454P
-    cores: 48
-    architecture: Zen 4
-    specrate_1p:
-      submissions:
-        - {value: 523, system: Dell PowerEdge R6615, date: 2023-11}
-      value_used: 523
-      confidence: MEASURED
-      source: sources#specrate
-
+- id: epyc-9454p
+  name: AMD EPYC 9454P
+  cores: 48
+  architecture: Zen 4
+  specrate_1p:
+    submissions:
+    - value: 523
+      system: Dell PowerEdge R6615
+      date: 2023-11
+    value_used: 523
+    confidence: MEASURED
+    source: sources#specrate
 # Renting the same kind of compute, priced in the same unit (dollars per SPECrate-point-year).
 rental_offers:
-  - id: hetzner-ax162-1
-    name: Hetzner AX162-1
-    cpu: epyc-9454p
-    monthly_usd: 722.10
-    setup_usd: 359
-    date: 2026-06-15
-    confidence: CONFIRMED
-    source: sources#hetzner
-    note: excl. IPv4 and VAT. Launched at EUR 199/mo in Feb-2024; repriced 2026-06-15.
-  - id: hetzner-ax162-1-ltd
-    name: Hetzner AX162-1-LTD
-    cpu: epyc-9454p
-    monthly_usd: 372.10
-    setup_usd: 359
-    date: 2026-06-15
-    confidence: CONFIRMED
-    source: sources#hetzner
-    note: limited-supply tier; availability is not guaranteed and cannot anchor fleet planning
-
+- id: hetzner-ax162-1
+  name: Hetzner AX162-1
+  cpu: epyc-9454p
+  monthly_usd: 722.1
+  setup_usd: 359
+  date: 2026-06-15
+  confidence: CONFIRMED
+  source: sources#hetzner
+  note: excl. IPv4 and VAT. Launched at EUR 199/mo in Feb-2024; repriced 2026-06-15.
+- id: hetzner-ax162-1-ltd
+  name: Hetzner AX162-1-LTD
+  cpu: epyc-9454p
+  monthly_usd: 372.1
+  setup_usd: 359
+  date: 2026-06-15
+  confidence: CONFIRMED
+  source: sources#hetzner
+  note: limited-supply tier; availability is not guaranteed and cannot anchor fleet planning
 # Hetzner cloud repricing of 2026-06-15, kept as raw old/new prices. Percentage moves are
 # computed at solve time, not stored.
 hetzner_cloud_repricing:
@@ -220,10 +2723,15 @@ hetzner_cloud_repricing:
   confidence: CONFIRMED
   source: sources#hetzner
   instances:
-    - {id: CCX63, old_eur: 374.49, new_eur: 853.49}
-    - {id: CPX41, old_eur: 38.99, new_eur: 120.49}
-    - {id: CPX51, old_eur: 77.99, new_eur: 237.99}
-
+  - id: CCX63
+    old_eur: 374.49
+    new_eur: 853.49
+  - id: CPX41
+    old_eur: 38.99
+    new_eur: 120.49
+  - id: CPX51
+    old_eur: 77.99
+    new_eur: 237.99
 # Historical record: the handoff's finding F7 reported Psi figures computed before the
 # current RAM price was pulled. Kept for reconciliation, not used in any solve.
 handoff_reported:
@@ -232,7 +2740,6 @@ handoff_reported:
     tco_10yr_usd: 25750
     confidence: SUPERSEDED
     date: 2026-08-29
-    note: >-
-      Back-solves to DDR5 near $16/GB against the $35.70/GB carried in the handoff's own
-      data table (dated 2026-08-14). The model reproduces these figures only at that
-      earlier RAM price; see analysis/05-hardware-selection.md for the reconciliation.
+    note: Back-solves to DDR5 near $16/GB against the $35.70/GB carried in the handoff's own data table
+      (dated 2026-08-14). The model reproduces these figures only at that earlier RAM price; see analysis/05-hardware-selection.md
+      for the reconciliation.

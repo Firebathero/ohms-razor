@@ -69,7 +69,10 @@ def collect(today: date | None = None) -> list[Row]:
 
     spec = repo_data.load("cpu_specs")
     for c in spec["candidates"]:
-        add(f"cpu street price: {c['id']}", "hardware_pricing", c["price_date"])
+        # A list price is a published figure that does not go stale the way a street price
+        # does, so only street prices carry a freshness window.
+        if c.get("price_date") is not None:
+            add(f"cpu street price: {c['id']}", "hardware_pricing", c["price_date"])
     for offer in spec["rental_offers"]:
         add(f"rental: {offer['id']}", "hardware_pricing", offer["date"])
 

@@ -29,6 +29,33 @@ figures still needing a manual re-pull). The steps individually:
    test to make it pass. Update the data, let the tables re-solve, and record the reversal in
    the README changelog. A reversal is the most valuable thing this repo can publish.
 
+## Adding candidates
+
+Hand-writing YAML is why the candidate sets stayed at four entries each. Use the bulk
+importer instead, so the marginal cost of one more candidate is one more spreadsheet row:
+
+```bash
+python scripts/import_catalog.py --template cpus > incoming/cpus-YYYY-MM-DD.csv
+python scripts/import_catalog.py cpus incoming/cpus-YYYY-MM-DD.csv --dry-run
+python scripts/import_catalog.py cpus incoming/cpus-YYYY-MM-DD.csv
+```
+
+Kinds: `cpus`, `models`, `machines`, `scores`, `throughput`. A blank or `TODO` cell never
+overwrites a value already in the data, a conflicting cell is reported and skipped rather
+than applied, and nothing is ever deleted. Commit the CSV: it is the provenance of the
+import, and a later survey diffs against it.
+
+A candidate does not need to be fully researched to go in. A part with a work rate but no
+price is screened on efficiency and reported as a pricing target; a part missing a power
+figure is reported as unplaceable. Both beat leaving it out, because a candidate that is
+not in the file is a candidate nobody will ever notice is missing.
+
+Two things a CPU import should get right, both learned the hard way on 2026-08-31. Prefer
+a published single-chip SPECrate result over scaling a 2P number, and record the count and
+range of submissions behind the median. And exclude virtual-machine submissions: they
+report the whole chip's core count while measuring a slice of it, which drags a median down
+by a fifth.
+
 ## Confidence tags
 
 | Tag | Meaning |
@@ -78,6 +105,14 @@ Each of these will move, and each one changes a conclusion:
   120B-class MoE. This is the strongest rebuttal to the local-vs-cloud finding and the repo
   wants the measurement, whichever way it points.
 - Actual 450W vs 500W performance on an EPYC 9965. The phi = 0.99 derate is an estimate.
+- A DDR4 RDIMM price. Memory is the dominant capex term, so the DDR4 platforms the CPU
+  survey had to exclude (EPYC 7002/7003 on SP3, Ampere Altra) could plausibly win on
+  dollars per point; without a price the repo can only say it does not know.
+- Per-socket build costs. The BOM is priced for SP5 and every other socket in the catalog
+  borrows that board, chassis, PSU and cooler.
+- Street prices for the list-priced CPU candidates that could still tie the winner. The
+  refresh plan names them; most of the field cannot get there at any price, so this is a
+  short list, not a survey.
 - Whether the two-tier structure holds as new models land.
 - Effective vs nominal bandwidth across unified-memory platforms.
 - Cost per unit of capability rather than per token: dollars per (index point x Mtok).

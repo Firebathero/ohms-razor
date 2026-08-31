@@ -169,16 +169,95 @@ def test_winner_by_psi_and_winner_by_watts_differ():
 
 
 def test_ranking_survives_sigma():
-    """sigma is applied identically to every candidate, so the ranking must not move when
-    it does."""
-    base = [e.name for e in sorted(repo_data.solve_psi().evaluations, key=lambda e: e.psi)]
-    for sigma in (0.40, 0.60):
-        cpus = repo_data.cpu_inputs()
-        op = repo_data.operating_inputs()
-        from models.hardware_psi import evaluate
+    """sigma is applied identically to every candidate that needs it, so the ranking must
+    not move when it does. Since the 2026-08-31 survey every candidate carries its own
+    published 1P result, so sigma should not touch the ranking at all; if a later entrant
+    arrives with a 2P result only, this still holds because sigma scales it uniformly."""
+    from models.hardware_psi import evaluate
 
+    base = [e.name for e in sorted(repo_data.solve_psi().evaluations, key=lambda e: e.psi)]
+    op = repo_data.operating_inputs()
+    for sigma in (0.40, 0.60):
+        cpus = [c for c in repo_data.cpu_inputs() if c.priceable]
         evs = [evaluate(c.__class__(**{**c.__dict__, "sigma": sigma}), op) for c in cpus]
         assert [e.name for e in sorted(evs, key=lambda e: e.psi)] == base
+
+
+def test_every_candidate_declares_its_work_rate_basis():
+    """A measured 1P result and a 2P result scaled by sigma are not the same evidence, and
+    a ranking that mixes them silently is a ranking nobody can audit."""
+    for c in repo_data.cpu_inputs():
+        if c.screenable:
+            assert c.basis in {"1P measured", "2P x sigma"}
+    scaled = [c.name for c in repo_data.cpu_inputs() if c.screenable and c.specrate_1p is None]
+    assert not scaled or all(c.specrate_2p is not None for c in repo_data.cpu_inputs()
+                             if c.name in scaled), (
+        "a candidate is screenable with neither a 1P nor a 2P result behind it"
+    )
+
+
+def test_memory_is_sized_to_the_socket():
+    """A six-channel socket cannot hold twelve DIMMs, so charging it for twelve would make
+    it look worse than it is; charging every socket the same would make the narrow ones
+    look better. Both are wrong and the difference is the largest term in capex."""
+    catalog = {c["name"]: c for c in repo_data.load("cpu_specs")["candidates"]}
+    slots = float(
+        repo_data.load("assumptions")["memory_config"]["dimm_slots_populated"]["value"]
+    )
+    per_dimm = float(repo_data.load("assumptions")["memory_config"]["gb_per_dimm"]["value"])
+    seen_narrow = False
+    for c in repo_data.cpu_inputs():
+        channels = catalog[c.name].get("memory_channels")
+        if channels is None:
+            continue
+        assert c.memory_gb == min(slots, float(channels)) * per_dimm
+        seen_narrow = seen_narrow or channels < slots
+    assert seen_narrow, "no candidate has fewer channels than the configured DIMM count"
+
+
+def test_most_contenders_cannot_reach_the_winner_at_any_cpu_price():
+    """The strongest form of the compute answer, and the one that does not depend on
+    anybody's price research being finished: for most of the field, memory plus platform
+    plus ten years of electricity already cost more per point than the winner's entire
+    build, so the CPU could be free and it would still lose."""
+    from models.hardware_psi import evaluate
+
+    op = repo_data.operating_inputs()
+    winner = repo_data.solve_psi().winner
+    cpus = {c.name: c for c in repo_data.cpu_inputs() if c.priceable}
+    unreachable = [(n, t) for n, t, _ in repo_data.solve_tie_prices() if t <= 0]
+    assert unreachable, "every contender could tie the winner at some price; check the solve"
+    for name, _tie in unreachable:
+        c = cpus[name]
+        free = evaluate(c.__class__(**{**c.__dict__, "cpu_price_usd": 0.0}), op)
+        assert free.psi >= winner.psi, (
+            f"{name} is reported as unreachable but beats the winner at a free CPU"
+        )
+
+
+def test_the_compute_field_spans_more_than_one_vendor_and_socket():
+    """A single-vendor field cannot tell you whether the vendor is the answer or the
+    prior. After the 2026-08-31 survey the catalog has to keep spanning the market."""
+    catalog = repo_data.load("cpu_specs")["candidates"]
+    vendors = {c.get("vendor") for c in catalog if c.get("vendor")}
+    sockets = {c.get("socket") for c in catalog if c.get("socket")}
+    assert len(vendors) >= 2, f"the CPU catalog is down to one vendor: {vendors}"
+    assert len(sockets) >= 3, f"the CPU catalog covers too few sockets: {sockets}"
+
+
+def test_a_list_price_is_never_reported_as_a_street_price():
+    """Most of the surveyed field is ranked on vendor list, which is an upper bound. That
+    has to be visible wherever the ranking is, or the table overstates what is known."""
+    import build_tables
+
+    listed = [c for c in repo_data.cpu_inputs() if c.priceable and c.price_is_list]
+    assert listed, "no candidate is list-priced; this guard has nothing to protect"
+    for c in listed:
+        entry = next(e for e in repo_data.load("cpu_specs")["candidates"] if e["name"] == c.name)
+        assert entry.get("price_street_usd") is None
+        assert entry.get("price_list_usd") is not None
+    table = build_tables.render_psi_compare()
+    assert "upper bound" in table and "list" in table
 
 
 def test_ranking_survives_electricity_and_hold():
@@ -208,12 +287,16 @@ def test_owning_beats_renting_on_every_offer():
 
 
 def test_handoff_reconciliation_closes():
-    """The F7 discrepancy is explained, not mysterious: at the implied RAM price the model
-    lands within the handoff's own rounding drift of the reported figure."""
+    """The F7 discrepancy is explained, not mysterious. Two things moved: the RAM price and
+    the work-rate basis. Reconstructed on the handoff's own basis, at the RAM price its
+    figures imply, the model lands within its rounding drift."""
     rec = repo_data.solve_handoff_reconciliation()
     assert rec["implied_usd_per_gb"] < rec["current_usd_per_gb"]
-    drift = abs(rec["psi_per_point_at_implied_ram"] - rec["reported_psi_per_point"])
+    drift = abs(rec["psi_per_point_on_handoff_basis"] - rec["reported_psi_per_point"])
     assert drift / rec["reported_psi_per_point"] < 0.01
+    # And the second reason it moved: the survey replaced a scaled 2P number with a
+    # measured 1P one, which lowered the winner's work rate.
+    assert rec["work_rate_now"] < rec["work_rate_handoff_basis"]
 
 
 # ---------------------------------------------------------------- the two questions
@@ -320,9 +403,18 @@ def test_every_dated_figure_carries_confidence():
         assert m.confidence
         assert m.date is not None
     for c in repo_data.load("cpu_specs")["candidates"]:
-        assert c["specrate_2p"]["confidence"]
-        assert c["phi"]["confidence"]
-        assert c["price_confidence"]
+        # A surveyed candidate carries whichever figures someone has researched, so the
+        # rule is that whatever is present is tagged, not that everything is present.
+        rates = [c[k] for k in ("specrate_1p", "specrate_2p") if k in c]
+        assert rates, f"{c['id']} has no SPECrate figure at all"
+        for rate in rates:
+            assert rate["confidence"]
+        if "phi" in c:
+            assert c["phi"]["confidence"]
+        if "price_street_usd" in c:
+            assert c["price_confidence"]
+        if "price_list_usd" in c:
+            assert c["price_list_confidence"]
     for machine in repo_data.load("hardware")["machines"]:
         assert machine["price_confidence"]
 

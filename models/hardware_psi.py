@@ -1,6 +1,7 @@
 """Model 5: hardware selection for deterministic compute, ranked on Psi.
 
-    W      = R_2P * sigma * phi         work rate (sigma = 1P scaling, phi = cTDP derate)
+    W      = R_1P * phi                 work rate when a 1P result is published
+    W      = R_2P * sigma * phi         otherwise (sigma = 1P scaling, phi = cTDP derate)
     P_wall = (P_cpu + P_plat) / eta
     P_eff  = U * P_wall + (1 - U) * P_idle
     kWh/yr = P_eff * k * 8766 / 1000
@@ -50,6 +51,10 @@ class CpuInputs:
     A part with a work rate but no price can be screened (ranked on perf/watt, which needs
     no price) and, if it screens well, becomes a target worth pricing.
     Only a part with both can be ranked on Psi.
+
+    A published 1P result is used directly when there is one. Scaling a 2P result by sigma
+    is the fallback for parts nobody has submitted single-socket, and it is the weaker of
+    the two: sigma is calibrated on one part and applied to every other.
     """
 
     name: str
@@ -59,14 +64,23 @@ class CpuInputs:
     ctdp_w: float
     cpu_price_usd: float | None
     non_cpu_capex_usd: float
+    specrate_1p: float | None = None
+    price_is_list: bool = False
+    memory_gb: float | None = None
 
     @property
     def screenable(self) -> bool:
-        return self.specrate_2p is not None
+        return self.specrate_1p is not None or self.specrate_2p is not None
 
     @property
     def priceable(self) -> bool:
         return self.screenable and self.cpu_price_usd is not None
+
+    @property
+    def basis(self) -> str:
+        """Which measurement the work rate rests on. Printed wherever a rate is, because a
+        measured 1P number and a scaled 2P number are not the same kind of evidence."""
+        return "1P measured" if self.specrate_1p is not None else "2P x sigma"
 
 
 @dataclass(frozen=True)
@@ -97,7 +111,13 @@ class Evaluation:
     energy_share: float       # theta
 
 
-def work_rate(specrate_2p: float, sigma: float, phi: float) -> float:
+def work_rate(specrate_2p: float | None, sigma: float, phi: float,
+              specrate_1p: float | None = None) -> float:
+    """Points delivered by one socket. A published 1P result needs no scaling."""
+    if specrate_1p is not None:
+        return specrate_1p * phi
+    if specrate_2p is None:
+        raise ValueError("no work rate: neither a 1P nor a 2P SPECrate result")
     return specrate_2p * sigma * phi
 
 
@@ -132,19 +152,19 @@ def screen(cpu: CpuInputs, op: OperatingInputs) -> Screening:
     """Rank a candidate without knowing its price. This is what makes a wide catalog
     affordable: SPECrate and TDP are published for everything, so the efficiency axis
     covers the whole field while the value axis covers only what someone has priced."""
-    if cpu.specrate_2p is None:
+    if not cpu.screenable:
         raise ValueError(f"{cpu.name} has no work rate; it cannot be screened")
-    w = work_rate(cpu.specrate_2p, cpu.sigma, cpu.phi)
+    w = work_rate(cpu.specrate_2p, cpu.sigma, cpu.phi, cpu.specrate_1p)
     p_wall = wall_power(cpu.ctdp_w, op.platform_draw_w, op.psu_efficiency)
     return Screening(name=cpu.name, work_rate=w, wall_power_w=p_wall, points_per_watt=w / p_wall)
 
 
 def evaluate(cpu: CpuInputs, op: OperatingInputs) -> Evaluation:
-    if cpu.specrate_2p is None or cpu.cpu_price_usd is None:
+    if not cpu.priceable:
         raise ValueError(
             f"{cpu.name} is missing a work rate or a price; screen() it instead of ranking it on Psi"
         )
-    w = work_rate(cpu.specrate_2p, cpu.sigma, cpu.phi)
+    w = work_rate(cpu.specrate_2p, cpu.sigma, cpu.phi, cpu.specrate_1p)
     p_wall = wall_power(cpu.ctdp_w, op.platform_draw_w, op.psu_efficiency)
     p_eff = duty_weighted_power(p_wall, op.idle_draw_w, op.utilization)
     kwh = annual_kwh(p_eff, op.cooling_overhead)

@@ -10,6 +10,7 @@ from __future__ import annotations
 import sys
 from dataclasses import dataclass
 from datetime import date
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -39,8 +40,19 @@ DATA = ROOT / "data"
 
 
 def load(name: str) -> dict[str, Any]:
+    """Parsed data file. Cached because the solvers read the same file once per candidate
+    and the catalog is now large enough for that to dominate the runtime; callers treat the
+    result as read-only. Call load.cache_clear() after writing a data file in-process."""
+    return _load_cached(name)
+
+
+@lru_cache(maxsize=None)
+def _load_cached(name: str) -> dict[str, Any]:
     with open(DATA / f"{name}.yaml", encoding="utf-8") as f:
         return yaml.safe_load(f)
+
+
+load.cache_clear = _load_cached.cache_clear  # type: ignore[attr-defined]
 
 
 # ---------------------------------------------------------------- workload
@@ -519,21 +531,34 @@ def operating_inputs(**overrides: float) -> OperatingInputs:
     return OperatingInputs(**values)
 
 
-def memory_cost_usd(usd_per_gb: float | None = None) -> float:
+def memory_gb_installed(channels: float | None = None) -> float:
+    """One DIMM per channel, capped by what the operator asked for. A six-channel SP6 part
+    cannot take twelve DIMMs, so pricing it for twelve would charge it for memory the
+    socket cannot hold."""
     a = load("assumptions")
     slots = float(a["memory_config"]["dimm_slots_populated"]["value"])
     gb = float(a["memory_config"]["gb_per_dimm"]["value"])
+    if channels is not None:
+        slots = min(slots, float(channels))
+    return slots * gb
+
+
+def memory_cost_usd(usd_per_gb: float | None = None, channels: float | None = None) -> float:
+    a = load("assumptions")
     price = (
         float(a["memory_pricing"]["ddr5_6400_rdimm_usd_per_gb"]["value"])
         if usd_per_gb is None
         else usd_per_gb
     )
-    return slots * gb * price
+    return memory_gb_installed(channels) * price
 
 
-def non_cpu_capex(usd_per_gb: float | None = None) -> float:
+def non_cpu_capex(usd_per_gb: float | None = None, channels: float | None = None) -> float:
+    """Board, chassis, PSU, cooler and memory. The BOM is priced once, off the SP5 build;
+    SP6, LGA4710, LGA7529 and AM5 boards are not separately priced yet, which the refresh
+    plan carries as a gap. Memory is sized to the socket."""
     bom = sum(float(item["unit_usd"]) for item in load("assumptions")["server_bom"])
-    return bom + memory_cost_usd(usd_per_gb)
+    return bom + memory_cost_usd(usd_per_gb, channels)
 
 
 def _num(value: Any) -> float | None:
@@ -562,22 +587,30 @@ def cpu_inputs(usd_per_gb: float | None = None, priced_only: bool = False) -> li
     take the whole field."""
     spec = load("cpu_specs")
     sigma = float(spec["calibration"]["sigma_1p_scaling"]["value"])
-    rest = non_cpu_capex(usd_per_gb)
     out = []
     for c in spec["candidates"]:
         phi_value, _conf = _default_phi(c)
         rate = c.get("specrate_2p") or {}
+        rate_1p = c.get("specrate_1p") or {}
         ctdp = _num(c.get("run_ctdp_w")) or _num(c.get("ctdp_floor_w")) or _num(c.get("tdp_default_w"))
         if ctdp is None:
             continue  # no power figure at all: cannot be placed on either axis
+        channels = _num(c.get("memory_channels"))
+        # A street price is what the part actually costs. List is an upper bound on it, so
+        # a candidate ranked on list is ranked on its worst case; the flag says which.
+        street = _num(c.get("price_street_usd"))
+        price = street if street is not None else _num(c.get("price_list_usd"))
         cpu = CpuInputs(
             name=c["name"],
             specrate_2p=_num(rate.get("value_used")),
             sigma=sigma,
             phi=phi_value,
             ctdp_w=ctdp,
-            cpu_price_usd=_num(c.get("price_street_usd")),
-            non_cpu_capex_usd=rest,
+            cpu_price_usd=price,
+            non_cpu_capex_usd=non_cpu_capex(usd_per_gb, channels),
+            specrate_1p=_num(rate_1p.get("value_used")),
+            price_is_list=street is None and price is not None,
+            memory_gb=memory_gb_installed(channels),
         )
         if priced_only and not cpu.priceable:
             continue
@@ -723,9 +756,12 @@ def solve_rent() -> tuple[Evaluation, list[RentRow], float, float]:
 
 
 def solve_tie_prices() -> list[tuple[str, float, float]]:
-    """CPU price at which each loser ties the winner: (name, tie price, street price)."""
+    """CPU price at which each loser ties the winner: (name, tie price, price carried).
+
+    A negative tie price means the contender cannot reach the winner's Psi even if the CPU
+    were free, which is the one verdict that does not depend on price research."""
     op = operating_inputs()
-    cpus = cpu_inputs()
+    cpus = [c for c in cpu_inputs() if c.priceable]
     evs = {c.name: evaluate(c, op) for c in cpus}
     winner = min(evs.values(), key=lambda e: e.psi)
     out = []
@@ -764,6 +800,24 @@ def solve_handoff_reconciliation() -> dict[str, float]:
     implied_memory = tco_reported - ev.energy_usd - cpu.cpu_price_usd - bom
     implied_per_gb = implied_memory / total_gb
     resolved = solve_psi(usd_per_gb=implied_per_gb).winner
+
+    # Two separate things moved since the handoff, and lumping them together explains
+    # neither. One is the RAM price. The other is the work rate: the handoff scaled a 2P
+    # SPECrate by sigma, and the 2026-08-31 survey replaced that with the part's own
+    # published 1P median. Reconstructing on the handoff's basis isolates the first.
+    on_handoff_basis = evaluate(
+        CpuInputs(
+            name=cpu.name,
+            specrate_2p=cpu.specrate_2p,
+            sigma=cpu.sigma,
+            phi=cpu.phi,
+            ctdp_w=cpu.ctdp_w,
+            cpu_price_usd=cpu.cpu_price_usd,
+            non_cpu_capex_usd=bom + implied_memory,
+            specrate_1p=None,
+        ),
+        op,
+    )
     current = load("assumptions")["memory_pricing"]["ddr5_6400_rdimm_usd_per_gb"]
     return {
         "reported_psi_per_point": float(reported["value"]),
@@ -774,6 +828,9 @@ def solve_handoff_reconciliation() -> dict[str, float]:
         "psi_per_point_at_implied_ram": resolved.psi * op.years,
         "psi_at_current_ram": ev.psi,
         "psi_per_point_at_current_ram": ev.psi * op.years,
+        "psi_per_point_on_handoff_basis": on_handoff_basis.psi * op.years,
+        "work_rate_handoff_basis": on_handoff_basis.work_rate,
+        "work_rate_now": ev.work_rate,
     }
 
 

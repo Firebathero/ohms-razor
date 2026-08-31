@@ -13,7 +13,7 @@ THE TOKENS QUESTION  (thinking)
   local inference  no: the best passing local config runs 4.1x cloud cost at AA 24
   the local box    hosts the agent: orchestration, sandboxes, a small resident triage model
 
-Caveats, solved with the answer: The frontier tier is for rare calls, not the loop: pricing the reference workload against its 26 priced models runs from $12,348 (glm-5, 6x the default) to $756,000 (gpt-5.5-pro, 395x). Every price is VOLATILE; run scripts/check_staleness.py before trusting. And the harder caveat: 1 candidate set (CPU candidates for the compute node) has never been surveyed for entrants, so that pick is the best of an inherited list, not the best available. Run /refresh-data to re-open it.
+Caveats, solved with the answer: The frontier tier is for rare calls, not the loop: pricing the reference workload against its 26 priced models runs from $12,348 (glm-5, 6x the default) to $756,000 (gpt-5.5-pro, 395x). Every price is VOLATILE; run scripts/check_staleness.py before trusting.
 ```
 
 ## The reference workload
@@ -305,12 +305,12 @@ First-order model (uniform independent routing), measured bandwidth on GMKtec EV
 
 | Candidate set | In catalog | Fully placeable | Last surveyed | Status |
 |---|---:|---|---|---|
-| CPU candidates for the compute node | 4 | 4 priced, 4 screenable | never | **never surveyed** |
+| CPU candidates for the compute node | 124 | 119 priced, 123 screenable | 2026-08-31 | current |
 | hosted models for the token tiers | 97 | see report | 2026-08-31 | current |
 | local machines for on-box inference | 37 | see report | 2026-08-31 | current |
 | the capability axis itself | 49 | 32 costed | 2026-08-31 | current |
 
-1 of 4 candidate sets were inherited from the original research and have never been re-opened. Every ranking drawn from them is "best of these", not "best available". Run `python scripts/refresh_plan.py` for the survey scope and where to look, or `/refresh-data` to have an agent do it.
+Every candidate set has been surveyed inside its interval.
 
 ## How much to trust this today
 
@@ -318,7 +318,7 @@ First-order model (uniform independent routing), measured bandwidth on GMKtec EV
 |---|---:|---|---|---|
 | benchmarks | 1 | 2026-08-31 | 60d | fresh |
 | dram | 1 | 2026-08-14 | 14d | **1 flagged** |
-| hardware_pricing | 43 | 2026-06-15 | 30d | **2 flagged** |
+| hardware_pricing | 45 | 2026-06-15 | 30d | **2 flagged** |
 | model_pricing | 98 | 2026-08-29 | 30d | fresh |
 
 SPECrate submissions never expire and are not policed.

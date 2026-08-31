@@ -29,6 +29,11 @@ DOCS = [ROOT / "README.md", ROOT / "REPORT.md", *sorted((ROOT / "analysis").glob
 MARKER = re.compile(r"(<!-- gen:(?P<key>[a-z0-9_]+) -->\n)(?P<body>.*?)(<!-- /gen:(?P=key) -->)", re.S)
 
 
+# A surveyed candidate set is too long to print whole. Tables show this many rows and then
+# say how many they left out; nothing is ever cropped without a count next to it.
+TOP_N = 15
+
+
 def usd(x: float, decimals: int = 2) -> str:
     return f"${x:,.{decimals}f}"
 
@@ -253,67 +258,127 @@ def render_moe_batching() -> str:
 
 
 def render_psi_compare() -> str:
+    """The value ranking. With a surveyed field this is far too long to print whole, so it
+    shows the leaders and says what it left out rather than quietly cropping."""
     sol = repo_data.solve_psi()
+    cpus = {c.name: c for c in repo_data.cpu_inputs()}
     spec = {c["name"]: c for c in repo_data.load("cpu_specs")["candidates"]}
     ranked = sorted(sol.evaluations, key=lambda e: e.psi)
+    cov = repo_data.cpu_coverage()
     lines = [
-        "| CPU | Cores | Run cTDP | phi | W (1P pts) | Wall W | TCO | Psi ($/pt-yr) | pts/W | Energy share | Rank |",
-        "|---|---:|---:|---|---:|---:|---:|---:|---:|---:|---:|",
+        "| # | CPU | Cores | Power | phi | Mem | W (1P pts) | Wall W | TCO | Psi ($/pt-yr) "
+        "| pts/W | Basis | Price |",
+        "|---:|---|---:|---:|---|---:|---:|---:|---:|---:|---:|---|---|",
     ]
-    for e in sol.evaluations:
+    for rank, e in enumerate(ranked[:TOP_N], start=1):
         c = spec[e.name]
-        phi = f"{c['phi']['value']:g} ({c['phi']['confidence']})"
+        cpu = cpus[e.name]
+        phi = c.get("phi")
+        phi_cell = f"{phi['value']:g} ({phi['confidence']})" if phi else "1 (stock)"
+        run = c.get("run_ctdp_w")
+        power = f"{float(run):g}W" if run else f"{float(c['tdp_default_w']):g}W stock"
         name = f"**{e.name}**" if e.name == sol.winner.name else e.name
-        rank = ranked.index(e) + 1
+        mem = f"{cpu.memory_gb:.0f}GB" if cpu.memory_gb else "?"
         lines.append(
-            f"| {name} | {c['cores']} | {c['run_ctdp_w']}W | {phi} | {e.work_rate:,.0f} | "
-            f"{e.wall_power_w:,.0f} | {usd(e.tco_usd, 0)} | {e.psi:.2f} | {e.points_per_watt:.2f} | "
-            f"{e.energy_share:.0%} | {rank} |"
+            f"| {rank} | {name} | {c.get('cores', '?')} | {power} | {phi_cell} | {mem} | "
+            f"{e.work_rate:,.0f} | {e.wall_power_w:,.0f} | {usd(e.tco_usd, 0)} | {e.psi:.2f} | "
+            f"{e.points_per_watt:.2f} | {cpu.basis} | {'list' if cpu.price_is_list else 'street'} |"
         )
     op = repo_data.operating_inputs()
+    listed = sum(1 for c in cpus.values() if c.priceable and c.price_is_list)
     lines.append("")
     lines.append(
-        f"Winner: **{sol.winner.name}** at {usd(sol.winner.psi, 2)} per SPECrate-point-year over "
-        f"{op.years:.0f} years ({usd(sol.winner.capex_usd, 0)} capex). Best perf/watt is "
-        f"**{sol.best_points_per_watt.name}** at {sol.best_points_per_watt.points_per_watt:.2f} pts/W: "
-        "efficiency and value rank differently, which is the point of solving for Psi instead."
+        f"Top {min(TOP_N, len(ranked))} of {len(ranked)} priced candidates, out of {cov.total} "
+        f"in the catalog. Winner: **{sol.winner.name}** at {usd(sol.winner.psi, 2)} per "
+        f"SPECrate-point-year over {op.years:.0f} years ({usd(sol.winner.capex_usd, 0)} capex). "
+        f"Best perf/watt is **{sol.best_points_per_watt.name}** at "
+        f"{sol.best_points_per_watt.points_per_watt:.2f} pts/W: efficiency and value rank "
+        "differently, which is the point of solving for Psi instead."
     )
+    lines.append("")
+    lines.append(
+        f"**Price basis matters here.** {listed} of {cov.priced} priced candidates carry only a "
+        "vendor list price, which is an upper bound on what the part costs, so their Psi is an "
+        "upper bound too and their true rank can only improve. Only "
+        f"{cov.priced - listed} have a street price. Read a list-priced row as \"no better than "
+        "this\", never as \"this is what it costs\", and see the breakeven table for the price "
+        "each contender would need to reach to tie the winner."
+    )
+    lines.append("")
+    lines.append(
+        "**Mem** is memory priced into the build: one DIMM per channel, capped at the "
+        f"{int(float(repo_data.load('assumptions')['memory_config']['dimm_slots_populated']['value']))} "
+        "the operator asked for. A six-channel SP6 part is charged for six DIMMs because it "
+        "cannot hold twelve, which also means it is not the same machine as a twelve-channel "
+        "one. Dollars per point has no opinion about that, so say it with a brightline: "
+        "`razor.py --min-memory-gb`."
+    )
+    return "\n".join(lines)
+
+
+def _sens_table(label: str, values, solve, fmt) -> str:
+    """One row per setting, one column per leader. A column per candidate stopped being
+    readable at 124 of them, so the leaders are named and the winner is solved over the
+    whole field, not over the printed subset."""
+    leaders = [e.name for e in sorted(repo_data.solve_psi().evaluations, key=lambda e: e.psi)[:6]]
+    short = [n.replace("AMD EPYC ", "").replace("Intel Xeon ", "") for n in leaders]
+    lines = [f"| {label} | " + " | ".join(short) + " | Winner (all candidates) |",
+             "|---:|" + "---:|" * len(short) + "---|"]
+    for v in values:
+        sol = solve(v)
+        by_name = {e.name: e for e in sol.evaluations}
+        cells = " | ".join(f"{by_name[n].psi:.2f}" if n in by_name else "-" for n in leaders)
+        lines.append(f"| {fmt(v)} | {cells} | {sol.winner.name} |")
     return "\n".join(lines)
 
 
 def render_psi_sens_electricity() -> str:
-    cpus = [c.name for c in repo_data.cpu_inputs()]
-    lines = ["| $/kWh | " + " | ".join(c.replace("AMD EPYC ", "") for c in cpus) + " | Winner |", "|---:|" + "---:|" * (len(cpus) + 1)]
-    for r in [0.10, 0.20, 0.30, 0.40, 0.60]:
-        sol = repo_data.solve_psi(repo_data.operating_inputs(electricity_usd_per_kwh=r))
-        cells = " | ".join(f"{e.psi:.2f}" for e in sol.evaluations)
-        lines.append(f"| {r:.2f} | {cells} | {sol.winner.name.replace('AMD EPYC ', '')} |")
-    return "\n".join(lines)
+    return _sens_table(
+        "$/kWh", [0.10, 0.20, 0.30, 0.40, 0.60],
+        lambda r: repo_data.solve_psi(repo_data.operating_inputs(electricity_usd_per_kwh=r)),
+        lambda r: f"{r:.2f}",
+    )
 
 
 def render_psi_sens_hold() -> str:
-    cpus = [c.name for c in repo_data.cpu_inputs()]
-    lines = ["| Hold (yr) | " + " | ".join(c.replace("AMD EPYC ", "") for c in cpus) + " | Winner |", "|---:|" + "---:|" * (len(cpus) + 1)]
-    for y in [3, 5, 7, 10, 12]:
-        sol = repo_data.solve_psi(repo_data.operating_inputs(years=float(y)))
-        cells = " | ".join(f"{e.psi:.2f}" for e in sol.evaluations)
-        lines.append(f"| {y} | {cells} | {sol.winner.name.replace('AMD EPYC ', '')} |")
-    lines.append("")
-    lines.append(
-        "Shorter holds punish capex and reward efficiency; the ranking holds while the absolute "
-        "numbers roughly double at five years (handoff weakness 7: ten-year amortization is aggressive)."
+    body = _sens_table(
+        "Hold (yr)", [3, 5, 7, 10, 12],
+        lambda y: repo_data.solve_psi(repo_data.operating_inputs(years=float(y))),
+        lambda y: f"{y}",
     )
-    return "\n".join(lines)
+    return body + "\n\n" + (
+        "Shorter holds punish capex and reward efficiency; the ranking holds while the absolute "
+        "numbers roughly double at five years (handoff weakness 7: ten-year amortization is "
+        "aggressive)."
+    )
 
 
 def render_breakevens() -> str:
+    """What each contender's CPU would have to cost to tie the winner. Most of a surveyed
+    field cannot get there at any price, and saying so is the strongest form of the
+    answer: it does not depend on anybody's price research being complete."""
+    sol = repo_data.solve_psi()
+    order = {e.name: e.psi for e in sol.evaluations}
+    rows = sorted(repo_data.solve_tie_prices(), key=lambda r: order.get(r[0], float("inf")))
+    cpus = {c.name: c for c in repo_data.cpu_inputs()}
+    free = [r for r in rows if r[1] <= 0]
     lines = [
-        "| Contender | CPU price that ties the winner | Street price | Gap |",
-        "|---|---:|---:|---:|",
+        "| Contender | CPU price that ties the winner | Price carried | Basis | Gap |",
+        "|---|---:|---:|---|---:|",
     ]
-    for name, tie, street in repo_data.solve_tie_prices():
-        gap = "cannot get there" if tie <= 0 else f"{usd(street - tie, 0)} too expensive"
-        lines.append(f"| {name} | {usd(tie, 0)} | {usd(street, 0)} | {gap} |")
+    for name, tie, have in rows[:TOP_N]:
+        basis = "list" if cpus[name].price_is_list else "street"
+        need = "none exists" if tie <= 0 else usd(tie, 0)
+        gap = "free is not enough" if tie <= 0 else f"{usd(have - tie, 0)} too expensive"
+        lines.append(f"| {name} | {need} | {usd(have, 0)} | {basis} | {gap} |")
+    lines.append("")
+    lines.append(
+        f"Top {min(TOP_N, len(rows))} contenders of {len(rows)}, ordered by Psi. "
+        f"{len(free)} of them cannot reach the winner's Psi even at a CPU price of zero: "
+        "memory, platform and ten years of electricity already cost more per point than the "
+        f"winner's whole build. For those the price basis does not matter, which is why "
+        "an incomplete price survey still supports a conclusion."
+    )
     return "\n".join(lines)
 
 
@@ -322,15 +387,20 @@ def render_memory_lever() -> str:
     current = float(a["memory_pricing"]["ddr5_6400_rdimm_usd_per_gb"]["value"])
     pre = float(a["memory_pricing"]["pre_shortage_reference_usd_per_gb"]["value"])
     prices = sorted({pre, 15.0, 25.0, current, 45.0})
-    lines = ["| DDR5 $/GB | Memory cost (384GB) | Winner Psi |", "|---:|---:|---:|"]
+    gb = repo_data.memory_gb_installed()
+    lines = [f"| DDR5 $/GB | Memory cost ({gb:.0f}GB) | Winner Psi | Winner |",
+             "|---:|---:|---:|---|"]
     for g, mem, psi in repo_data.solve_memory_lever(prices):
         marker = " (current)" if g == current else (" (pre-shortage)" if g == pre else "")
-        lines.append(f"| {usd(g, 2)}{marker} | {usd(mem, 0)} | {psi:.2f} |")
+        winner = repo_data.solve_psi(usd_per_gb=g).winner.name
+        lines.append(f"| {usd(g, 2)}{marker} | {usd(mem, 0)} | {psi:.2f} | {winner} |")
     lines.append("")
     lines.append(
-        "Memory is identical across candidates, so it never changes the ranking. It is also the "
-        "largest single number under your control; waiting for DRAM normalization is worth more than "
-        "any CPU decision in this repo."
+        "Memory is the largest single number under your control, and waiting for DRAM "
+        "normalization is worth more than any CPU decision in this repo. It is no longer "
+        "identical across candidates: a six-channel socket takes six DIMMs, not twelve, so "
+        "cheap DRAM helps the twelve-channel parts most. The winner column solves the whole "
+        "field at each price rather than assuming the ranking holds."
     )
     return "\n".join(lines)
 
@@ -372,21 +442,42 @@ def render_rent_compare() -> str:
 
 
 def render_handoff_reconciliation() -> str:
+    """Two things moved since the handoff and they have to be separated, or the residual
+    looks like unexplained error when it is a documented change of method."""
     rec = repo_data.solve_handoff_reconciliation()
-    drift = abs(rec["psi_per_point_at_implied_ram"] - rec["reported_psi_per_point"]) / rec["reported_psi_per_point"]
+    drift = (
+        abs(rec["psi_per_point_on_handoff_basis"] - rec["reported_psi_per_point"])
+        / rec["reported_psi_per_point"]
+    )
+    ram = usd(rec["implied_usd_per_gb"], 2)
     return "\n".join(
         [
-            "| Quantity | Handoff F7 | This repo, same RAM price | This repo, current RAM price |",
-            "|---|---:|---:|---:|",
-            f"| DDR5 $/GB | implied {usd(rec['implied_usd_per_gb'], 2)} | {usd(rec['implied_usd_per_gb'], 2)} | {usd(rec['current_usd_per_gb'], 2)} |",
-            f"| 10-yr Psi per point | {usd(rec['reported_psi_per_point'], 2)} | {usd(rec['psi_per_point_at_implied_ram'], 2)} | {usd(rec['psi_per_point_at_current_ram'], 2)} |",
-            f"| Psi ($/pt-yr) | {rec['reported_psi_per_point'] / 10:.2f} | {rec['psi_at_implied_ram']:.2f} | {rec['psi_at_current_ram']:.2f} |",
+            "| Quantity | Handoff F7 | Same RAM price, handoff's work rate | "
+            "Same RAM price, measured work rate | Current RAM price |",
+            "|---|---:|---:|---:|---:|",
+            f"| DDR5 $/GB | implied {ram} | {ram} | {ram} | "
+            f"{usd(rec['current_usd_per_gb'], 2)} |",
+            f"| Work rate (1P pts) | {rec['work_rate_handoff_basis']:,.0f} | "
+            f"{rec['work_rate_handoff_basis']:,.0f} | {rec['work_rate_now']:,.0f} | "
+            f"{rec['work_rate_now']:,.0f} |",
+            f"| 10-yr Psi per point | {usd(rec['reported_psi_per_point'], 2)} | "
+            f"{usd(rec['psi_per_point_on_handoff_basis'], 2)} | "
+            f"{usd(rec['psi_per_point_at_implied_ram'], 2)} | "
+            f"{usd(rec['psi_per_point_at_current_ram'], 2)} |",
+            f"| Psi ($/pt-yr) | {rec['reported_psi_per_point'] / 10:.2f} | "
+            f"{rec['psi_per_point_on_handoff_basis'] / 10:.2f} | "
+            f"{rec['psi_at_implied_ram']:.2f} | {rec['psi_at_current_ram']:.2f} |",
             "",
-            f"The handoff's F7 figures back-solve to DDR5 near {usd(rec['implied_usd_per_gb'], 2)}/GB, "
-            f"against the {usd(rec['current_usd_per_gb'], 2)}/GB its own data table carries (2026-08-14). "
-            f"At the implied price this repo reproduces the reported number within {drift:.1%} (the "
-            "residual is rounding drift inside the handoff itself). The published Psi is whatever the "
-            "current data solves to; the old figure is kept in data/cpu_specs.yaml as SUPERSEDED.",
+            f"The handoff's F7 figures back-solve to DDR5 near {ram}/GB, against the "
+            f"{usd(rec['current_usd_per_gb'], 2)}/GB its own data table carries (2026-08-14). "
+            "Hold both its RAM price and its work rate, and this repo reproduces the reported "
+            f"number within {drift:.1%}, which is rounding drift inside the handoff itself. "
+            "The two columns after that are the two things that actually changed, in order: "
+            "the 2026-08-31 survey replaced the scaled 2P work rate with the part's own "
+            f"published 1P median ({rec['work_rate_handoff_basis']:,.0f} points to "
+            f"{rec['work_rate_now']:,.0f}), and DRAM went up. The published Psi is whatever "
+            "the current data solves to; the old figure is kept in data/cpu_specs.yaml as "
+            "SUPERSEDED.",
         ]
     )
 
@@ -516,18 +607,33 @@ def render_the_answer() -> str:
 
 
 def render_compute_per_watt() -> str:
+    """The efficiency axis, which needs no price, so it covers every screenable candidate
+    rather than only the priced ones."""
     sol = repo_data.solve_psi()
+    screened = repo_data.solve_screening()
+    psi_rank = {e.name: i + 1 for i, e in enumerate(sorted(sol.evaluations, key=lambda e: e.psi))}
+    priced = {c.name for c in repo_data.cpu_inputs() if c.priceable}
+    lines = [
+        "| # | CPU | pts per wall watt | Wall W | Psi rank |",
+        "|---:|---|---:|---:|---|",
+    ]
+    for rank, s in enumerate(screened[:TOP_N], start=1):
+        where = str(psi_rank[s.name]) if s.name in psi_rank else "unpriced"
+        lines.append(
+            f"| {rank} | {s.name} | {s.points_per_watt:.2f} | {s.wall_power_w:,.0f} | {where} |"
+        )
     by_eps = sorted(sol.evaluations, key=lambda e: e.points_per_watt, reverse=True)
     by_psi = sorted(sol.evaluations, key=lambda e: e.psi)
-    lines = [
-        "| CPU | pts per wall watt | Efficiency rank | Psi rank |",
-        "|---|---:|---:|---:|",
-    ]
-    for e in by_eps:
-        lines.append(
-            f"| {e.name} | {e.points_per_watt:.2f} | {by_eps.index(e) + 1} | {by_psi.index(e) + 1} |"
-        )
     eff, val = by_eps[0], by_psi[0]
+    unpriced_top = [s.name for s in screened[:TOP_N] if s.name not in priced]
+    lines.append("")
+    lines.append(
+        f"Top {min(TOP_N, len(screened))} of {len(screened)} screenable candidates. Screening "
+        "needs only a published work rate and a power figure, so it covers more of the field "
+        "than the value ranking does."
+        + (f" Unpriced and in the efficiency top {TOP_N}: {', '.join(unpriced_top)}."
+           if unpriced_top else "")
+    )
     lines.append("")
     lines.append(
         f"**{eff.name}** is the efficiency champion at {eff.points_per_watt:.2f} pts/W and "

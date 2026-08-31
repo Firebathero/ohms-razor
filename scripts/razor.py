@@ -178,6 +178,8 @@ class ComputeCandidate:
     work_points: float
     feasible: bool
     excluded_by: str
+    memory_gb: float | None = None
+    price_is_list: bool = False
 
 
 @dataclass(frozen=True)
@@ -187,11 +189,13 @@ class ComputeResult:
     objective: str
     min_points: float
     max_watts: float | None
+    min_memory_gb: float
     coverage: repo_data.Coverage
     pricing_targets: list[repo_data.PricingTarget]
 
 
-def solve_compute(min_points: float, max_watts: float | None, objective: str) -> ComputeResult:
+def solve_compute(min_points: float, max_watts: float | None, objective: str,
+                  min_memory_gb: float = 0.0) -> ComputeResult:
     """Screens the whole catalog, then ranks on the chosen axis.
 
     Note what the objective does to the field: efficiency needs no price, so it competes
@@ -199,23 +203,30 @@ def solve_compute(min_points: float, max_watts: float | None, objective: str) ->
     what someone has researched. Picking the efficiency axis widens the search for free.
     """
     op = repo_data.operating_inputs()
-    priced = {c.name: c for c in repo_data.cpu_inputs() if c.priceable}
+    catalog = {c.name: c for c in repo_data.cpu_inputs()}
+    priced = {n: c for n, c in catalog.items() if c.priceable}
     evaluations = {name: evaluate_cached(c, op) for name, c in priced.items()}
 
     candidates = []
     for s in repo_data.solve_screening(op):
         ev = evaluations.get(s.name)
+        cpu = catalog[s.name]
         reasons = []
         if s.work_rate < min_points:
             reasons.append(f"{s.work_rate:,.0f} pts < {min_points:,.0f} floor")
         if max_watts is not None and s.wall_power_w > max_watts:
             reasons.append(f"{s.wall_power_w:,.0f}W wall > {max_watts:,.0f}W cap")
+        # A socket with fewer memory channels holds less memory, which makes it cheaper per
+        # point without being the same machine. The floor is how the operator says so.
+        if min_memory_gb and (cpu.memory_gb or 0.0) < min_memory_gb:
+            reasons.append(f"{cpu.memory_gb or 0:,.0f}GB < {min_memory_gb:,.0f}GB floor")
         if objective == "value" and ev is None:
             reasons.append("no price yet")
         candidates.append(
             ComputeCandidate(
                 s.name, s.wall_power_w, ev.psi if ev else None, s.points_per_watt,
                 s.work_rate, not reasons, "; ".join(reasons),
+                cpu.memory_gb, cpu.price_is_list,
             )
         )
 
@@ -227,7 +238,7 @@ def solve_compute(min_points: float, max_watts: float | None, objective: str) ->
         else:
             winner = min(feasible, key=lambda c: c.psi)
     return ComputeResult(
-        candidates, winner, objective, min_points, max_watts,
+        candidates, winner, objective, min_points, max_watts, min_memory_gb,
         repo_data.cpu_coverage(), repo_data.pricing_targets(op),
     )
 
@@ -304,9 +315,15 @@ def plot_compute(r: ComputeResult, path: Path) -> None:
         plotted,
         key=lambda c: -c.points_per_watt if efficiency else (c.psi or float("inf")),
     )
-    label_these = {c.label for c in ranked[:6]}
+    label_these = {c.label for c in ranked[:4 if dense else 6]}
     if r.winner:
         label_these.add(r.winner.label)
+    # The leaders bunch up along the bottom edge, so alternate the label offsets rather
+    # than stacking four annotations on the same few pixels.
+    stagger = {}
+    for i, c in enumerate(sorted((c for c in plotted if c.label in label_these),
+                                key=lambda c: c.wall_w)):
+        stagger[c.label] = [(9, 6), (9, -16), (-16, 12), (-16, -20)][i % 4]
 
     for c in plotted:
         y = c.points_per_watt if efficiency else c.psi
@@ -318,7 +335,8 @@ def plot_compute(r: ComputeResult, path: Path) -> None:
         note = f"{c.label.replace('AMD EPYC ', '')}\n{c.work_points:,.0f} pts"
         if not c.feasible and not dense:
             note += f"\nout: {c.excluded_by}"
-        ax.annotate(note, (c.wall_w, y), textcoords="offset points", xytext=(8, 5),
+        ax.annotate(note, (c.wall_w, y), textcoords="offset points",
+                    xytext=stagger.get(c.label, (8, 5)),
                     fontsize=7.5, color="black" if c.feasible else "gray")
     xs = [c.wall_w for c in plotted] + ([r.max_watts] if r.max_watts else [])
     ys = [(c.points_per_watt if efficiency else c.psi) for c in plotted]
@@ -372,13 +390,16 @@ def main() -> int:
     ap.add_argument("--tokens-objective", choices=["cheapest", "smartest"], default="cheapest")
     ap.add_argument("--min-points", type=float, default=0.0, help="compute work floor, 1P SPECrate points")
     ap.add_argument("--max-watts", type=float, default=None, help="compute power brightline, wall watts")
+    ap.add_argument("--min-memory-gb", type=float, default=0.0,
+                    help="compute memory brightline, GB the socket must hold at one DIMM per channel")
     ap.add_argument("--compute-objective", choices=["value", "efficiency"], default="value")
     ap.add_argument("--outdir", type=Path, default=repo_data.ROOT / "out")
     args = ap.parse_args()
 
     tokens = solve_tokens(args.out_mtok_yr, args.in_mtok_yr, args.cache,
                           args.min_score, args.budget_monthly, args.tokens_objective)
-    compute = solve_compute(args.min_points, args.max_watts, args.compute_objective)
+    compute = solve_compute(args.min_points, args.max_watts, args.compute_objective,
+                            args.min_memory_gb)
 
     args.outdir.mkdir(exist_ok=True)
     plot_tokens(tokens, args.outdir / "tokens.png")
@@ -409,7 +430,8 @@ def main() -> int:
     cov = compute.coverage
     print(f"\nCOMPUTE objective={compute.objective}"
           + (f"  work>={compute.min_points:,.0f} pts" if compute.min_points else "")
-          + (f"  wall<={compute.max_watts:,.0f}W" if compute.max_watts else ""))
+          + (f"  wall<={compute.max_watts:,.0f}W" if compute.max_watts else "")
+          + (f"  mem>={compute.min_memory_gb:,.0f}GB" if compute.min_memory_gb else ""))
     print(f"        catalog={cov.total}  with work rate={cov.screenable}  priced={cov.priced}")
     ranked = sorted(
         compute.candidates,
@@ -421,9 +443,11 @@ def main() -> int:
     for c in shown:
         mark = "->" if compute.winner and c.label == compute.winner.label else ("  " if c.feasible else " x")
         psi = f"Psi ${c.psi:>6.2f}/pt-yr" if c.psi is not None else "Psi     unpriced"
+        # "list" means the price is an upper bound, so the Psi next to it is too.
+        basis = " list" if c.price_is_list else ("     " if c.psi is not None else "     ")
         why = f"  [{c.excluded_by}]" if c.excluded_by else ""
-        print(f"  {mark} {c.label:26s} {psi}  {c.points_per_watt:5.2f} pts/W  "
-              f"{c.wall_w:>5,.0f}W wall{why}")
+        print(f"  {mark} {c.label:26s} {psi}{basis}  {c.points_per_watt:5.2f} pts/W  "
+              f"{c.wall_w:>5,.0f}W wall  {(c.memory_gb or 0):>3,.0f}GB{why}")
     if len(ranked) > len(shown):
         print(f"     ...and {len(ranked) - len(shown)} more (see the plot)")
     if compute.winner is None:
